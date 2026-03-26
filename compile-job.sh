@@ -29,7 +29,7 @@ ENV_NAME="yosys_env"
 WORKDIR=$(pwd)
 
 # ----------------------------
-# Install Miniconda locally if missing
+# Install Miniconda if missing
 # ----------------------------
 if [ ! -d "$CONDA_DIR" ]; then
     echo "📥 Installing Miniconda locally..."
@@ -39,22 +39,28 @@ if [ ! -d "$CONDA_DIR" ]; then
 fi
 
 export PATH="$CONDA_DIR/bin:$PATH"
-
-# Load conda function
 source "$CONDA_DIR/etc/profile.d/conda.sh"
 
 # ----------------------------
-# Accept Conda Terms of Service automatically
+# Accept Conda TOS
 # ----------------------------
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main || true
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r || true
 
 # ----------------------------
-# Create Conda environment if missing
+# Install Mamba in base if missing
+# ----------------------------
+if ! command -v mamba &> /dev/null; then
+    echo "⚡ Installing Mamba in base environment..."
+    conda install -y -n base -c conda-forge mamba
+fi
+
+# ----------------------------
+# Create Mamba environment if missing
 # ----------------------------
 if ! conda info --envs | grep -q "$ENV_NAME"; then
-    echo "🛠 Creating Conda environment..."
-    conda create -y -n "$ENV_NAME" -c conda-forge yosys nextpnr-ice40 python
+    echo "🛠 Creating Mamba environment..."
+    mamba create -y -n "$ENV_NAME" -c conda-forge yosys nextpnr-ice40 python eigen
 fi
 
 # Activate environment
@@ -65,7 +71,9 @@ conda activate "$ENV_NAME"
 # ----------------------------
 if [ ! -f "$PREFIX/bin/icepack" ]; then
     echo "📂 Installing IceStorm locally..."
-    git clone https://github.com/YosysHQ/icestorm.git "$WORKDIR/icestorm"
+    if [ ! -d "$WORKDIR/icestorm" ]; then
+        git clone https://github.com/YosysHQ/icestorm.git "$WORKDIR/icestorm"
+    fi
     cd "$WORKDIR/icestorm"
     make -j$(nproc) -C icebram all
     make -j$(nproc) -C icetime all
@@ -73,6 +81,28 @@ if [ ! -f "$PREFIX/bin/icepack" ]; then
     make PREFIX=$PREFIX install
     cd "$WORKDIR"
 fi
+
+# ----------------------------
+# Install NextPNR-ice40 locally if missing
+# ----------------------------
+if [ ! -f "$PREFIX/bin/nextpnr-ice40" ]; then
+    echo "📂 Installing NextPNR-ice40 locally..."
+    if [ ! -d "$WORKDIR/nextpnr" ]; then
+        git clone https://github.com/YosysHQ/nextpnr.git "$WORKDIR/nextpnr"
+    fi
+    cd "$WORKDIR/nextpnr"
+    mkdir -p build
+    cd build
+    cmake -DARCH=ice40 -DEIGEN3_INCLUDE_DIR=$CONDA_PREFIX/include/eigen3 -DCMAKE_INSTALL_PREFIX=$PREFIX ..
+    make -j$(nproc)
+    make install
+    cd "$WORKDIR"
+fi
+
+# ----------------------------
+# Add local bin to PATH
+# ----------------------------
+export PATH="$PREFIX/bin:$PATH"
 
 # ----------------------------
 # Tool binaries
