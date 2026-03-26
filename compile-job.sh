@@ -2,7 +2,7 @@
 set -e
 
 # ----------------------------
-# Local installation variables
+# Local install directory
 # ----------------------------
 PREFIX=$HOME/.local
 WORKDIR=$(pwd)
@@ -79,19 +79,18 @@ fi
 #SBATCH --time=02:00:00
 
 # ----------------------------
-# Synthesis / P&R / Bitstream
+# Design synthesis / P&R / bitstream
 # ----------------------------
 set -e
 
-# Top module and constraints
-TOP=top
+TOP=top           # Change this if your top module is different
 PCF=upduino.pcf
 
 # Find all SystemVerilog files up to 3 levels deep
 SRCS=$(find . -maxdepth 3 -name "*.sv" -print0 | xargs -0)
 
-echo "📦 Synthesizing design with Yosys..."
-"$YOSYS_BIN" -p "read_verilog -sv $SRCS; synth_ice40 -top $TOP -json top.json"
+echo "📦 Synthesizing design with Yosys (flattened)..."
+"$YOSYS_BIN" -p "read_verilog -sv $SRCS; synth_ice40 -top $TOP -flatten -json top.json"
 
 echo "📐 Running place & route with nextpnr..."
 "$NEXTPNR_BIN" \
