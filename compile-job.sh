@@ -27,6 +27,8 @@ PREFIX="$HOME/.local"
 CONDA_DIR="$HOME/miniconda3"
 ENV_NAME="yosys_env"
 WORKDIR=$(pwd)
+ICESTORM_DIR="$WORKDIR/icestorm"
+NEXTPNR_DIR="$WORKDIR/nextpnr"
 
 # ----------------------------
 # Install Miniconda if missing
@@ -60,28 +62,12 @@ fi
 # ----------------------------
 if ! conda info --envs | grep -q "$ENV_NAME"; then
     echo "🛠 Creating Mamba environment..."
-        mamba create -y -n "$ENV_NAME" -c conda-forge \
+    mamba create -y -n "$ENV_NAME" -c conda-forge \
         python=3.10 \
-        cmake \
-        make \
-        ninja \
-        git \
-        pkg-config \
-        bison \
-        flex \
-        gxx_linux-64 \
-        gcc_linux-64 \
-        readline \
-        zlib \
-        ncurses \
-        libffi \
-        eigen \
-        boost \
-        boost-cpp \
-        tbb \
-        yosys
+        cmake make ninja git pkg-config bison flex \
+        gxx_linux-64 gcc_linux-64 \
+        readline zlib ncurses libffi eigen boost boost-cpp tbb yosys libftdi
 fi
-
 
 # Activate environment
 conda activate "$ENV_NAME"
@@ -91,10 +77,10 @@ conda activate "$ENV_NAME"
 # ----------------------------
 if [ ! -f "$PREFIX/bin/icepack" ]; then
     echo "📂 Installing IceStorm locally..."
-    if [ ! -d "$WORKDIR/icestorm" ]; then
-        git clone https://github.com/YosysHQ/icestorm.git "$WORKDIR/icestorm"
+    if [ ! -d "$ICESTORM_DIR" ]; then
+        git clone https://github.com/YosysHQ/icestorm.git "$ICESTORM_DIR"
     fi
-    cd "$WORKDIR/icestorm"
+    cd "$ICESTORM_DIR"
 
     make -j$(nproc) -C icebram all
     make -j$(nproc) -C icetime all
@@ -104,6 +90,10 @@ if [ ! -f "$PREFIX/bin/icepack" ]; then
     make PREFIX=$PREFIX -C icetime install
     make PREFIX=$PREFIX -C icepack install
 
+    # Ensure cells_sim.v exists in environment share directory
+    mkdir -p "$CONDA_PREFIX/share/ice40"
+    cp ice40/cells_sim.v "$CONDA_PREFIX/share/ice40/"
+
     cd "$WORKDIR"
 fi
 
@@ -112,10 +102,10 @@ fi
 # ----------------------------
 if [ ! -f "$PREFIX/bin/nextpnr-ice40" ]; then
     echo "📂 Installing NextPNR-ice40 locally..."
-    if [ ! -d "$WORKDIR/nextpnr" ]; then
-        git clone https://github.com/YosysHQ/nextpnr.git "$WORKDIR/nextpnr"
+    if [ ! -d "$NEXTPNR_DIR" ]; then
+        git clone https://github.com/YosysHQ/nextpnr.git "$NEXTPNR_DIR"
     fi
-    cd "$WORKDIR/nextpnr"
+    cd "$NEXTPNR_DIR"
     mkdir -p build
     cd build
     export CMAKE_PREFIX_PATH="$CONDA_PREFIX"
@@ -152,7 +142,6 @@ echo "   IceBRAM: $ICEBRAM_BIN"
 TOP=top
 PCF=upduino.pcf
 
-
 # Find all SystemVerilog files up to 3 levels deep, excluding testbench files (*_tb.sv)
 SRCS=$(find . -maxdepth 3 -name "*.sv" ! -name "*_tb.sv" -not -path "*/.*" -print0 | xargs -0)
 
@@ -172,3 +161,8 @@ echo "🔧 Packing bitstream..."
 
 echo "✅ Bitstream ready: top.bin"
 echo "⚠️ Note: iceprog (flashing) is not installed."
+
+# ----------------------------
+# Optional: Add local builds to .gitignore
+# ----------------------------
+echo -e "\n# Local build artifacts\n$ENV_NAME/\nicestorm/\nnextpnr/\n*.o\n*.json\n*.asc\n*.bin" >> .gitignore || true
