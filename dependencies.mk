@@ -40,7 +40,7 @@ server:
 
 # Split design RTL sources from testbench sources.
 TB_SOURCES := $(sort $(wildcard *_tb.sv))
-RTL_SOURCES := top.sv $(sort $(filter-out top.sv $(TB_SOURCES),$(wildcard *.sv)))
+RTL_SOURCES := top.sv $(sort $(filter-out top.sv $(TB_SOURCES),$(wildcard *.sv */*.sv */*/*.sv */*/*/*.sv)))
 
 # -----------------------------
 # Simulation / Testbench
