@@ -56,6 +56,7 @@ fi
 if [ ! -f "$PREFIX/lib/libftdi1.a" ]; then
     echo "📦 Installing libftdi..."
     cd $BUILD_DIR
+    rm -rf libftdi1-1.5
     curl -LO https://www.intra2net.com/en/developer/libftdi/download/libftdi1-1.5.tar.bz2
     tar xjf libftdi1-1.5.tar.bz2
     cd libftdi1-1.5
@@ -77,7 +78,7 @@ if [ ! -f "$PREFIX/bin/icepack" ]; then
     make -C icebram all
     make -C icetime all
     make -C icepack all
-    # Make iceprog with local libftdi
+    # iceprog needs local libftdi
     make -C iceprog PREFIX=$PREFIX
     make PREFIX=$PREFIX install
 else
