@@ -1,8 +1,19 @@
-`include "NAND2TETRIS/05/computer.sv"
-`include "keyboard/keyboard.sv"
-`include "VGA/vga_pll.sv"
-`include "VGA/vga_timer.sv"
-`include "VGA/vga_top.sv"
+// `include "keyboard/keyboard.sv"
+// `include "VGA/vga_pll.sv"
+// `include "VGA/vga_timer.sv"
+// `include "VGA/vga_top.sv"
+// `include "NAND2TETRIS/05/computer.sv"
+// `include "keyboard/keyboard.sv"
+// `include "VGA/vga_pll.sv"
+// `include "VGA/vga_timer.sv"
+// `include "VGA/vga_top.sv"
+// `include "NAND2TETRIS/05/cpu_jopdorp_optimized.sv"
+// `include "NAND2TETRIS/05/memory.sv"
+// `include "NAND2TETRIS/05/ram_16K_spram.sv"
+// `include "NAND2TETRIS/05/screen_framebuffer_encoder.sv"
+// `include "NAND2TETRIS/05/rom.sv"
+// `include "NAND2TETRIS/02/alu_optimized.sv"
+
 
 // System top-level:
 // - Generates 25MHz from the 12MHz board clock.

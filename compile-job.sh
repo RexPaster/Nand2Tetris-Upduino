@@ -152,8 +152,9 @@ echo "   IceBRAM: $ICEBRAM_BIN"
 TOP=top
 PCF=upduino.pcf
 
-# Find all SystemVerilog files up to 3 levels deep
-SRCS=$(find . -maxdepth 3 -name "*.sv" -not -path "*/.*" -print0 | xargs -0)
+
+# Find all SystemVerilog files up to 3 levels deep, excluding testbench files (*_tb.sv)
+SRCS=$(find . -maxdepth 3 -name "*.sv" ! -name "*_tb.sv" -not -path "*/.*" -print0 | xargs -0)
 
 echo "📦 Synthesizing design with Yosys..."
 "$YOSYS_BIN" -p "read_verilog -sv $SRCS; synth_ice40 -top $TOP -flatten -json top.json"

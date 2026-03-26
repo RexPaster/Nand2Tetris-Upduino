@@ -1,4 +1,3 @@
-`include "../02/alu_optimized.sv"
 
 module cpu_jopdorp_optimized(
     input  [15:0] inM,

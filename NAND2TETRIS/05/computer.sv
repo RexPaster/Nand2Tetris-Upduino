@@ -1,5 +1,3 @@
-`include "./cpu_jopdorp_optimized.sv"
-`include "memory.sv"
 
 `define computer 1
 

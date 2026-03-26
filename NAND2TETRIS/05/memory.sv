@@ -1,6 +1,3 @@
-`include "ram_16K_spram.sv"
-`include "screen_framebuffer_encoder.sv"
-`include "rom.sv"
 
 // Hack memory map implementation:
 // - 0x0000-0x3FFF: 16K main RAM (mapped to UP5K SPRAM)
