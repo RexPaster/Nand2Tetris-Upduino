@@ -6,83 +6,22 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mem=64G
-#SBATCH --time=04:00:00
+#SBATCH --time=02:00:00
 #SBATCH -A engr-class-any
 
 set -e
 
 # ----------------------------
-# SLURM self-submit if not already running
+# Ensure local binaries are in PATH
 # ----------------------------
-if [ -z "$SLURM_JOB_ID" ]; then
-    echo "📤 Submitting SLURM job..."
-    sbatch "$0"
-    exit 0
-fi
+export PATH="$HOME/.local/bin:$PATH"
 
 # ----------------------------
-# Local installation variables
+# Tool binaries (assume already installed)
 # ----------------------------
-PREFIX=$HOME/.local
-WORKDIR=$(pwd)
-mkdir -p $PREFIX $WORKDIR
-
-export PATH="$PREFIX/bin:$PATH"
-export LD_LIBRARY_PATH="$PREFIX/lib:$LD_LIBRARY_PATH"
-export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
-export CFLAGS="-I$PREFIX/include"
-export LDFLAGS="-L$PREFIX/lib"
-
-# ----------------------------
-# IceStorm (without iceprog)
-# ----------------------------
-if [ ! -f "$PREFIX/bin/icepack" ]; then
-    echo "📂 Installing icestorm (no iceprog)..."
-    cd $WORKDIR
-    git clone https://github.com/YosysHQ/icestorm.git "$WORKDIR/icestorm"
-    cd "$WORKDIR/icestorm"
-    make -C icebram all
-    make -C icetime all
-    make -C icepack all
-    make PREFIX=$PREFIX install
-else
-    echo "✅ IceStorm already installed, skipping."
-fi
-ICEBRAM_BIN="$PREFIX/bin/icebram"
-ICETIME_BIN="$PREFIX/bin/icetime"
-ICEPACK_BIN="$PREFIX/bin/icepack"
-
-# ----------------------------
-# Yosys
-# ----------------------------
-if [ ! -f "$PREFIX/bin/yosys" ]; then
-    echo "🔧 Installing yosys..."
-    cd $WORKDIR
-    git clone https://github.com/YosysHQ/yosys.git "$WORKDIR/yosys"
-    cd "$WORKDIR/yosys"
-    # Skip Git check to avoid HPC errors
-    make -j$(nproc) PREFIX=$PREFIX NO_CHECK_GIT=1
-    make install PREFIX=$PREFIX
-else
-    echo "✅ Yosys already installed, skipping."
-fi
-YOSYS_BIN="$PREFIX/bin/yosys"
-
-# ----------------------------
-# NextPNR
-# ----------------------------
-if [ ! -f "$PREFIX/bin/nextpnr-ice40" ]; then
-    echo "🛠 Installing nextpnr..."
-    cd $WORKDIR
-    git clone https://github.com/YosysHQ/nextpnr.git "$WORKDIR/nextpnr"
-    cd "$WORKDIR/nextpnr"
-    cmake -DARCH=ice40 -DCMAKE_INSTALL_PREFIX=$PREFIX .
-    make -j$(nproc)
-    make install
-else
-    echo "✅ nextpnr already installed, skipping."
-fi
-NEXTPNR_BIN="$PREFIX/bin/nextpnr-ice40"
+YOSYS_BIN="$HOME/.local/bin/yosys"
+NEXTPNR_BIN="$HOME/.local/bin/nextpnr-ice40"
+ICEPACK_BIN="$HOME/.local/bin/icepack"
 
 # ----------------------------
 # Synthesis / P&R / Bitstream
