@@ -25,8 +25,7 @@ fi
 # ----------------------------
 PREFIX=$HOME/.local
 WORKDIR=$(pwd)
-BUILD_DIR="$HOME/build-icestorm"
-mkdir -p $PREFIX $BUILD_DIR
+mkdir -p $PREFIX $WORKDIR
 
 export PATH="$PREFIX/bin:$PATH"
 export LD_LIBRARY_PATH="$PREFIX/lib:$LD_LIBRARY_PATH"
@@ -61,7 +60,8 @@ if [ ! -f "$PREFIX/bin/yosys" ]; then
     cd $WORKDIR
     git clone https://github.com/YosysHQ/yosys.git "$WORKDIR/yosys"
     cd "$WORKDIR/yosys"
-    make -j$(nproc) PREFIX=$PREFIX
+    # Skip Git check to avoid HPC errors
+    make -j$(nproc) PREFIX=$PREFIX NO_CHECK_GIT=1
     make install PREFIX=$PREFIX
 else
     echo "✅ Yosys already installed, skipping."
