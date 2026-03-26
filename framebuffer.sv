@@ -134,7 +134,7 @@ module framebuffer #(
     // Address and range generation.
     always_comb begin
         // Read is valid only inside active video and screen window.
-        fb_in_range = active && (int'(h_cnt) < H_WRITEABLE) && (int'(v_cnt) < V_WRITEABLE);
+        fb_in_range = active && (h_cnt < H_WRITEABLE) && (v_cnt < V_WRITEABLE);
 
         // Write address from CPU: uses Hack's 32 words/row layout (13-bit address).
         write_row = write_addr[12:5];
