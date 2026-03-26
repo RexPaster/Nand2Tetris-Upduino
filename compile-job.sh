@@ -29,7 +29,7 @@ ENV_NAME="yosys_env"
 # Install Miniconda locally if not present
 if [ ! -d "$CONDA_DIR" ]; then
     echo "📥 Installing Miniconda locally..."
-    wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    curl -sSLo miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
     bash miniconda.sh -b -p "$CONDA_DIR"
     rm miniconda.sh
 fi
