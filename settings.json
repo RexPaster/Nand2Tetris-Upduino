@@ -1,5 +1,5 @@
 {
-    "build_preset": "better",
+    "build_preset": "best",
     "use_spi_flash_rom": true,
     "sim_use_spi_flash_rom": true,
     "rom_flash_offset": "0x200000",
