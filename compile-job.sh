@@ -17,6 +17,7 @@ set -e
 if [ -z "$SLURM_JOB_ID" ]; then
     echo "📤 Submitting SLURM job..."
     sbatch "$0"
+    tail -f -v sim3.out sim3.err
     exit 0
 fi
 
@@ -60,11 +61,28 @@ fi
 # ----------------------------
 if ! conda info --envs | grep -q "$ENV_NAME"; then
     echo "🛠 Creating Mamba environment..."
-    mamba create -y -n "$ENV_NAME" -c conda-forge \
+        mamba create -y -n "$ENV_NAME" -c conda-forge \
         python=3.10 \
-        cmake make git gxx_linux-64 gcc_linux-64 \
-        readline zlib ncurses libffi eigen yosys
+        cmake \
+        make \
+        ninja \
+        git \
+        pkg-config \
+        bison \
+        flex \
+        gxx_linux-64 \
+        gcc_linux-64 \
+        readline \
+        zlib \
+        ncurses \
+        libffi \
+        eigen \
+        boost \
+        boost-cpp \
+        tbb \
+        yosys
 fi
+
 
 # Activate environment
 conda activate "$ENV_NAME"
@@ -96,6 +114,7 @@ if [ ! -f "$PREFIX/bin/nextpnr-ice40" ]; then
     cd "$WORKDIR/nextpnr"
     mkdir -p build
     cd build
+    export CMAKE_PREFIX_PATH="$CONDA_PREFIX"
     cmake -DARCH=ice40 -DCMAKE_INSTALL_PREFIX=$PREFIX ..
     make -j$(nproc)
     make install
