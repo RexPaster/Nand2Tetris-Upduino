@@ -90,12 +90,16 @@ if [ ! -f "$PREFIX/bin/icepack" ]; then
     make PREFIX=$PREFIX -C icetime install
     make PREFIX=$PREFIX -C icepack install
 
-    # Ensure cells_sim.v exists in environment share directory
-    mkdir -p "$CONDA_PREFIX/share/ice40"
-    cp ice40/cells_sim.v "$CONDA_PREFIX/share/ice40/"
-
     cd "$WORKDIR"
 fi
+
+# ----------------------------
+# ALWAYS ensure ice40 exists
+# ----------------------------
+echo "📄 Ensuring Ice40 support files exist..."
+mkdir -p "$CONDA_PREFIX/share/ice40"
+
+rsync -a "$ICESTORM_DIR/ice40/" "$CONDA_PREFIX/share/ice40/"
 
 # ----------------------------
 # Install NextPNR-ice40 locally if missing
@@ -140,7 +144,7 @@ echo "   IceBRAM: $ICEBRAM_BIN"
 # Synthesis / P&R / Bitstream
 # ----------------------------
 TOP=top
-PCF=upduino.pcf
+PCF=top.pcf
 
 # Find all SystemVerilog files up to 3 levels deep, excluding testbench files (*_tb.sv)
 SRCS=$(find . -maxdepth 3 -name "*.sv" ! -name "*_tb.sv" -not -path "*/.*" -print0 | xargs -0)
