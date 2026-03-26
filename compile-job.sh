@@ -2,9 +2,9 @@
 #SBATCH --job-name=sim3
 #SBATCH --output=sim3.out
 #SBATCH --error=sim3.err
-#SBATCH --partition=compute
+#SBATCH --partition=ib-linuxlab    # high-memory nodes
 #SBATCH --nodes=1
-#SBATCH --ntasks=2
+#SBATCH --ntasks=1
 #SBATCH --mem=64G
 #SBATCH --time=02:00:00
 #SBATCH -A engr-class-any
