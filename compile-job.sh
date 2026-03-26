@@ -51,7 +51,7 @@ else
 fi
 
 # ----------------------------
-# Build libftdi locally
+# Build libftdi locally (without udev)
 # ----------------------------
 if [ ! -f "$PREFIX/lib/libftdi1.a" ]; then
     echo "📦 Installing libftdi..."
@@ -59,7 +59,7 @@ if [ ! -f "$PREFIX/lib/libftdi1.a" ]; then
     curl -LO https://www.intra2net.com/en/developer/libftdi/download/libftdi1-1.5.tar.bz2
     tar xjf libftdi1-1.5.tar.bz2
     cd libftdi1-1.5
-    ./configure --prefix=$PREFIX --enable-static=no
+    ./configure --prefix=$PREFIX --enable-static=no --disable-udev
     make -j$(nproc)
     make install
 else
