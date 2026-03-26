@@ -42,7 +42,7 @@ export PATH="$CONDA_DIR/bin:$PATH"
 source "$CONDA_DIR/etc/profile.d/conda.sh"
 
 # ----------------------------
-# Accept Conda TOS
+# Accept Conda TOS automatically
 # ----------------------------
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main || true
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r || true
@@ -56,11 +56,14 @@ if ! command -v mamba &> /dev/null; then
 fi
 
 # ----------------------------
-# Create Mamba environment if missing
+# Create Conda environment if missing
 # ----------------------------
 if ! conda info --envs | grep -q "$ENV_NAME"; then
     echo "🛠 Creating Mamba environment..."
-    mamba create -y -n "$ENV_NAME" -c conda-forge yosys nextpnr-ice40 python eigen
+    mamba create -y -n "$ENV_NAME" -c conda-forge \
+        python=3.10 \
+        cmake make git gxx_linux-64 gcc_linux-64 \
+        readline zlib ncurses libffi eigen yosys
 fi
 
 # Activate environment
@@ -93,7 +96,7 @@ if [ ! -f "$PREFIX/bin/nextpnr-ice40" ]; then
     cd "$WORKDIR/nextpnr"
     mkdir -p build
     cd build
-    cmake -DARCH=ice40 -DEIGEN3_INCLUDE_DIR=$CONDA_PREFIX/include/eigen3 -DCMAKE_INSTALL_PREFIX=$PREFIX ..
+    cmake -DARCH=ice40 -DCMAKE_INSTALL_PREFIX=$PREFIX ..
     make -j$(nproc)
     make install
     cd "$WORKDIR"
