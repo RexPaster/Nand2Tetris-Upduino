@@ -5,6 +5,7 @@
 #SBATCH --partition=ib-linuxlab
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
 #SBATCH --mem=64G
 #SBATCH --time=04:00:00
 #SBATCH -A engr-class-any
