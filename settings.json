@@ -1,0 +1,7 @@
+{
+    "build_preset": "better",
+    "use_spi_flash_rom": true,
+    "sim_use_spi_flash_rom": true,
+    "rom_flash_offset": "0x200000",
+    "rom_flash_image": "rom/rom.hack"
+}

@@ -1,0 +1,164 @@
+#!/opt/venv/bin/python3
+import sys
+import json5
+import os
+from string import Template
+import re
+import json2table as jt
+# See if any argument is a json file or an svg file
+json_file = None
+svg_file = None
+out_file = "out.html"
+
+for arg in sys.argv[1:]:
+    if arg.endswith('.json'):
+        json_file = arg
+    elif arg.endswith('.svg'):
+        svg_file = arg
+    elif arg.endswith('.html'):
+        out_file = arg
+
+if json_file is None and svg_file is None:
+    print("Usage: {} <json file> <svg file> <out file>".format(sys.argv[0]))
+    sys.exit(1)
+
+
+htmlStart = """
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Utilization Details</title>
+</head>
+
+<body>
+  <h1>Utilization Details</h1>
+"""
+
+
+
+htmlEnd = """
+</body>
+
+</html>
+"""
+
+def addTableIfData(jsondata, title):
+    if jsondata and len(jsondata) > 0:
+        html = "<h2>{}</h2><br/>".format(title)
+        html += '<button class="collapsible">{}</button>'.format("Click to expand/hide")
+        html += '<div class="content">'
+        build_direction = "LEFT_TO_RIGHT"
+        table_attributes = {}
+        data = {"":jsondata}
+        table = jt.json2table.convert(data, build_direction=build_direction, table_attributes=table_attributes)
+        html += table + "<br>\n\n"
+        html += '</div>'
+        return html
+    else:
+        return ""
+
+# Add in table CSS that alternates table row colors and justifies the left column to top, left
+tableStyle = """
+<style>
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid black;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background-color: grey;
+  color: white;
+}
+
+tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+td:first-child {
+  background-color: grey;
+  color: white;
+  vertical-align: top;
+}
+
+.collapsible {
+  background-color: #777;
+  color: white;
+  cursor: pointer;
+  padding: 10px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  font-size: 15px;
+}
+
+.active, .collapsible:hover {
+  background-color: #555;
+}
+
+.content {
+  padding: 0 18px;
+  display: none;
+  overflow: hidden;
+  background-color: #f9f9f9;
+}
+</style>\n
+"""
+
+# Add JavaScript for collapsible functionality
+collapsibleScript = """
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var coll = document.getElementsByClassName("collapsible");
+  for (var i = 0; i < coll.length; i++) {
+    coll[i].addEventListener("click", function() {
+      this.classList.toggle("active");
+      var content = this.nextElementSibling;
+      if (content.style.display === "block") {
+        content.style.display = "none";
+      } else {
+        content.style.display = "block";
+      }
+    });
+  }
+});
+</script>
+"""
+
+# TODO: This part
+htmlBody = tableStyle + collapsibleScript
+table=""
+table_attributes = {}
+if json_file is not None:
+    with open(json_file, 'r') as f:
+        data = json5.load(f)
+        htmlBody += addTableIfData(data.get('critical_paths'), "Critical Paths")
+        htmlBody += addTableIfData(data.get('fmax'), "Frequency")
+        htmlBody += addTableIfData(data.get('utilization'), "Utilization")
+
+if svg_file is not None:
+    # Simplify svg_file to only the file name (after last /)
+    svg_file = re.sub(r'.*/', '', svg_file)
+    # Create link to open image in new tab
+    htmlBody += f'\n\n<br><h2>Place/Route: <a href="/svg/{svg_file}" target="_blank" alt="Utilization Details">Open Image</a></h2><br /><br />\n'
+    # htmlBody += f'\n\n<br><h2>Place/Route</h2><img src="http://127.0.0.1:3000/svg/{svg_file}" alt="Utilization Details">\n'
+    # htmlBody += f'\n\n<br><h2>Place/Route</h2><img srcset="http://127.0.0.1:3000/svg/{svg_file} 3x" alt="Utilization Details">\n'
+
+# Write out the file
+with open(out_file, 'w') as f:
+    f.write(htmlStart)
+    f.write(htmlBody)
+    f.write(htmlEnd)

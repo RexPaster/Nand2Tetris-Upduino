@@ -1,0 +1,12 @@
+{
+    "uartSupport": true,
+    "usbDevices": {
+      "filters": [
+        {
+                "vendorId": 1027,
+                "productId": 24596
+
+        }
+      ]
+    }
+  }

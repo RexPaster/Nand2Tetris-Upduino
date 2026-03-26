@@ -1,0 +1,14 @@
+$date
+	Thu Oct 26 01:35:48 1985
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1s
+$end
+$scope module error $end
+$enddefinitions $end
+$comment Error. $end
+$dumpall
+$end

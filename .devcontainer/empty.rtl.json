@@ -1,0 +1,90 @@
+{
+  "creator": "Yosys 0.33 (git sha1 2584903a060)",
+  "modules": {
+    "ErrorCloseSimulator": {
+      "attributes": {
+        "src": "testmod.sv:1.1-6.10"
+      },
+      "ports": {
+        "Error": {
+          "direction": "input",
+          "bits": [ 2 ]
+        },
+        "TryAgain": {
+          "direction": "output",
+          "bits": [ 2 ]
+        }
+      },
+      "cells": {
+      },
+      "netnames": {
+        "Error": {
+          "hide_name": 0,
+          "bits": [ 2 ],
+          "attributes": {
+            "src": "testmod.sv:2.15-2.20"
+          }
+        },
+        "TryAgain": {
+          "hide_name": 0,
+          "bits": [ 2 ],
+          "attributes": {
+            "src": "testmod.sv:3.16-3.24"
+          }
+        }
+      }
+    },
+    "top": {
+      "attributes": {
+        "top": "00000000000000000000000000000001",
+        "src": "testmod.sv:8.1-18.10"
+      },
+      "ports": {
+        "Error": {
+          "direction": "input",
+          "bits": [ 2 ]
+        },
+        "TryAgain": {
+          "direction": "output",
+          "bits": [ 3 ]
+        }
+      },
+      "cells": {
+        "AndTryAgain$": {
+          "hide_name": 0,
+          "type": "ErrorCloseSimulator",
+          "parameters": {
+          },
+          "attributes": {
+            "module_not_derived": "00000000000000000000000000000001",
+            "src": "testmod.sv:13.21-16.2"
+          },
+          "port_directions": {
+            "Error": "input",
+            "TryAgain": "output"
+          },
+          "connections": {
+            "Error": [ 2 ],
+            "TryAgain": [ 3 ]
+          }
+        }
+      },
+      "netnames": {
+        "Error": {
+          "hide_name": 0,
+          "bits": [ 2 ],
+          "attributes": {
+            "src": "testmod.sv:9.15-9.20"
+          }
+        },
+        "TryAgain": {
+          "hide_name": 0,
+          "bits": [ 3 ],
+          "attributes": {
+            "src": "testmod.sv:10.16-10.24"
+          }
+        }
+      }
+    }
+  }
+}

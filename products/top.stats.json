@@ -1,0 +1,278 @@
+{
+   "creator": "Yosys 0.57+260 (git sha1 f7120e9c2, clang++ 18.1.8 -fPIC -O3)",
+   "invocation": "stat -json ",
+   "modules": {
+      "$paramod$3adbc8b27f4f470968fb3e2f44608ea526ac2f69\\framebuffer": {
+         "num_wires":         23123,
+         "num_wire_bits":     102989,
+         "num_pub_wires":     23123,
+         "num_pub_wire_bits": 102989,
+         "num_ports":         12,
+         "num_port_bits":     84,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         93905,
+         "num_submodules":       0,
+         "num_cells_by_type": {
+            "SB_CARRY": 7,
+            "SB_DFFE": 34368,
+            "SB_DFFR": 71,
+            "SB_LUT4": 59459
+         }
+      },
+      "$paramod$4953f8554083c6b25dca5d3c9a6536f019242c52\\vga_timer": {
+         "num_wires":         61,
+         "num_wire_bits":     104,
+         "num_pub_wires":     61,
+         "num_pub_wire_bits": 104,
+         "num_ports":         7,
+         "num_port_bits":     25,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         97,
+         "num_submodules":       0,
+         "num_cells_by_type": {
+            "SB_CARRY": 47,
+            "SB_DFFER": 10,
+            "SB_DFFR": 10,
+            "SB_LUT4": 30
+         }
+      },
+      "$paramod$6177a44f25bf75c47125b8f697f8e2c68a818084\\rom": {
+         "num_wires":         101,
+         "num_wire_bits":     353,
+         "num_pub_wires":     101,
+         "num_pub_wire_bits": 353,
+         "num_ports":         9,
+         "num_port_bits":     38,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         175,
+         "num_submodules":       0,
+         "num_cells_by_type": {
+            "SB_CARRY": 5,
+            "SB_DFFER": 67,
+            "SB_DFFES": 1,
+            "SB_DFFR": 1,
+            "SB_DFFS": 1,
+            "SB_LUT4": 100
+         }
+      },
+      "$paramod\\computer\\SIMULATION=1'0\\USE_SPI_FLASH_ROM=1'1": {
+         "num_wires":         20,
+         "num_wire_bits":     162,
+         "num_pub_wires":     20,
+         "num_pub_wire_bits": 162,
+         "num_ports":         14,
+         "num_port_bits":     97,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         1,
+         "num_submodules":       2,
+         "num_cells_by_type": {
+            "SB_LUT4": 1,
+            "$paramod\\memory\\SIMULATION=1'0\\USE_SPI_FLASH_ROM=1'1": 1,
+            "cpu_jopdorp_optimized": 1
+         }
+      },
+      "$paramod\\memory\\SIMULATION=1'0\\USE_SPI_FLASH_ROM=1'1": {
+         "num_wires":         38,
+         "num_wire_bits":     242,
+         "num_pub_wires":     38,
+         "num_pub_wire_bits": 242,
+         "num_ports":         18,
+         "num_port_bits":     160,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         34,
+         "num_submodules":       3,
+         "num_cells_by_type": {
+            "SB_LUT4": 34,
+            "$paramod$6177a44f25bf75c47125b8f697f8e2c68a818084\\rom": 1,
+            "ram_16K_spram": 1,
+            "screen_framebuffer_encoder": 1
+         }
+      },
+      "$paramod\\vga_pll\\SIMULATION=1'0": {
+         "num_wires":         3,
+         "num_wire_bits":     3,
+         "num_pub_wires":     3,
+         "num_pub_wire_bits": 3,
+         "num_ports":         3,
+         "num_port_bits":     3,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         1,
+         "num_submodules":       0,
+         "num_cells_by_type": {
+            "SB_PLL40_CORE": 1
+         }
+      },
+      "$paramod\\vga_top\\SIMULATION=1'0": {
+         "num_wires":         25,
+         "num_wire_bits":     107,
+         "num_pub_wires":     25,
+         "num_pub_wire_bits": 107,
+         "num_ports":         12,
+         "num_port_bits":     75,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         7,
+         "num_submodules":       3,
+         "num_cells_by_type": {
+            "SB_DFFR": 3,
+            "SB_DFFS": 2,
+            "SB_LUT4": 2,
+            "$paramod$3adbc8b27f4f470968fb3e2f44608ea526ac2f69\\framebuffer": 1,
+            "$paramod$4953f8554083c6b25dca5d3c9a6536f019242c52\\vga_timer": 1,
+            "$paramod\\vga_pll\\SIMULATION=1'0": 1
+         }
+      },
+      "\\alu_optimized": {
+         "num_wires":         59,
+         "num_wire_bits":     184,
+         "num_pub_wires":     59,
+         "num_pub_wire_bits": 184,
+         "num_ports":         11,
+         "num_port_bits":     56,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         90,
+         "num_submodules":       0,
+         "num_cells_by_type": {
+            "SB_CARRY": 15,
+            "SB_LUT4": 75
+         }
+      },
+      "\\cpu_jopdorp_optimized": {
+         "num_wires":         83,
+         "num_wire_bits":     279,
+         "num_pub_wires":     83,
+         "num_pub_wire_bits": 279,
+         "num_ports":         9,
+         "num_port_bits":     82,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         127,
+         "num_submodules":       1,
+         "num_cells_by_type": {
+            "SB_CARRY": 13,
+            "SB_DFFE": 16,
+            "SB_DFFNE": 15,
+            "SB_DFFNESR": 16,
+            "SB_LUT4": 67,
+            "alu_optimized": 1
+         }
+      },
+      "\\keyboard": {
+         "num_wires":         92,
+         "num_wire_bits":     327,
+         "num_pub_wires":     92,
+         "num_pub_wire_bits": 327,
+         "num_ports":         5,
+         "num_port_bits":     20,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         198,
+         "num_submodules":       0,
+         "num_cells_by_type": {
+            "SB_CARRY": 2,
+            "SB_DFFER": 31,
+            "SB_DFFR": 1,
+            "SB_DFFS": 6,
+            "SB_LUT4": 158
+         }
+      },
+      "\\ram_16K_spram": {
+         "num_wires":         6,
+         "num_wire_bits":     64,
+         "num_pub_wires":     6,
+         "num_pub_wire_bits": 64,
+         "num_ports":         5,
+         "num_port_bits":     48,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         1,
+         "num_submodules":       0,
+         "num_cells_by_type": {
+            "SB_SPRAM256KA": 1
+         }
+      },
+      "\\screen_framebuffer_encoder": {
+         "num_wires":         11,
+         "num_wire_bits":     107,
+         "num_pub_wires":     11,
+         "num_pub_wire_bits": 107,
+         "num_ports":         10,
+         "num_port_bits":     106,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         0,
+         "num_submodules":       0,
+         "num_cells_by_type": {
+
+         }
+      },
+      "\\top": {
+         "num_wires":         21,
+         "num_wire_bits":     99,
+         "num_pub_wires":     21,
+         "num_pub_wire_bits": 99,
+         "num_ports":         13,
+         "num_port_bits":     22,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         1,
+         "num_submodules":       3,
+         "num_cells_by_type": {
+            "SB_LUT4": 1,
+            "$paramod\\computer\\SIMULATION=1'0\\USE_SPI_FLASH_ROM=1'1": 1,
+            "$paramod\\vga_top\\SIMULATION=1'0": 1,
+            "keyboard": 1
+         }
+      }
+   },
+      "design": {
+         "num_wires":         23643,
+         "num_wire_bits":     105020,
+         "num_pub_wires":     23643,
+         "num_pub_wire_bits": 105020,
+         "num_ports":         128,
+         "num_port_bits":     816,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         94637,
+         "num_submodules":       3,
+         "num_cells_by_type": {
+            "SB_CARRY": 89,
+            "SB_DFFE": 34384,
+            "SB_DFFER": 108,
+            "SB_DFFES": 1,
+            "SB_DFFNE": 15,
+            "SB_DFFNESR": 16,
+            "SB_DFFR": 86,
+            "SB_DFFS": 9,
+            "SB_LUT4": 59927,
+            "SB_PLL40_CORE": 1,
+            "SB_SPRAM256KA": 1,
+            "$paramod\\computer\\SIMULATION=1'0\\USE_SPI_FLASH_ROM=1'1": 1,
+            "$paramod\\vga_top\\SIMULATION=1'0": 1,
+            "keyboard": 1
+         }
+      }
+}
+

@@ -1,0 +1,309 @@
+#!/usr/bin/bash
+
+# Idenftify the type of file and react accordingly
+
+# Should only have one command line argument and it should be contained in the dependencies.mk
+if [ $# -ne 1 ]; then
+    echo "Error: Usage is 'makehdl <target>'"
+    exit 1
+fi
+if [ ! -f dependencies.mk ]; then
+    echo "Error: dependencies.mk not found"
+    exit 1
+fi
+if ! grep -q "^$1\s*:" dependencies.mk; then
+    echo "Error: target $1 not found in dependencies.mk"
+    exit 1
+fi
+
+# Get the directory that contains this script
+DIR=$( dirname $0 )
+
+# Build all directories to the target
+mkdir -p $( dirname $1 )
+
+
+# Identify the type of target and react accordingly
+# If it's a type that runs the makefile and then opens the target
+if [[ $1 == *.aig.svg ||
+      $1 == *.ice40.svg ||
+      $1 == *.ice40.dot  ||
+      $1 == *.rom.txt ]]; then
+    # Remove the old target
+    rm -f $1
+    make -f $DIR/Makefile $1
+    # If product exists, open it
+    if [ -f $1 ]; then
+      code $1
+    else
+      # Format https://github.com/digital-logic-and-computer-design/hdl-problemmatchers/blob/555848970cd7e4aefe1dfb9b747f21253adedb17/package.json#L27
+      echo "$(basename $1):0: ERROR: Failed to produce $1; Check Problems and Terminal for details"
+    fi
+elif [[ $1 == *.rtl.json ]]; then
+    # Remove the old target / show default (error)
+    cp ${DIR}/empty.rtl.json $1
+    # touch it back in time
+    touch -t 198510260135.48 $1
+    # Try to make it
+    make -f $DIR/Makefile $1
+    # If product exists, open it
+    if [ -f $1 ]; then
+      code $1
+    else
+      # Format https://github.com/digital-logic-and-computer-design/hdl-problemmatchers/blob/555848970cd7e4aefe1dfb9b747f21253adedb17/package.json#L27
+      echo "$(basename $1):0: ERROR: Failed to produce $1; Check Problems and Terminal for details"
+    fi
+elif [[ $1 == *.vcd ]]; then
+    # Remove the old target / show default (error)
+    cp ${DIR}/error.vcd.txt $1
+    # touch it back in time
+    touch -t 198510260135.48 $1
+    # Build the target
+    make -f ${DIR}/Makefile $1
+    # If product exists, open it
+    if [ -f $1 ]; then
+      code $1
+    else
+      # Format https://github.com/digital-logic-and-computer-design/hdl-problemmatchers/blob/555848970cd7e4aefe1dfb9b747f21253adedb17/package.json#L39
+      echo "$(basename $1):0  Failed to produce $1; Check Problems and Terminal for details"
+    fi
+# Same process as bin, so same setup and processing.
+elif [[ $1 == *.placed.svg ]]; then
+    # Build the target.  Show output and capture to a temporary file
+    make -f ${DIR}/Makefile $1 2>&1 | tee /tmp/makehdl.log
+    # If make failed, parse the output and print any errors not already captured by yosys
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        # Check the temporary file for "^ERROR:" messages and reformat each
+        echo "dependencies.mk:0: ERROR: Failed to produce $1"
+        # Counter that starts at one
+        COUNTER=1
+        # For each line that starts with "ERROR:", get the entire line and print it
+        grep "^ERROR:" /tmp/makehdl.log | while read line; do
+            echo "dependencies.mk:$COUNTER: $line"
+            # Increment the counter
+            COUNTER=$((COUNTER+1))
+        done
+        exit 1
+    fi
+
+    # if the target was created, link & open
+    if [ -f $1 ]; then
+        if ! grep -q '</svg>' "$1"; then
+          echo "Warning: $1 missing </svg>; repairing malformed SVG output."
+          echo "</svg>" >> "$1"
+        fi
+        # Create the corresponding HTML file
+        HTMLFILE=$( echo $1 | sed 's/svg/html/' )
+        # Run genhtmlview.py to create the HTML file
+        # JSON file is the first argument with routed.svg replace by .routed.json
+        JSONFILE=$( echo $1 | sed 's/placed.svg/report.json/' )
+        if [ -f "$JSONFILE" ]; then
+          ${DIR}/genpnrview "$1" "$JSONFILE" "$HTMLFILE"
+        else
+          echo "Warning: $JSONFILE not found; generating HTML without utilization tables."
+          ${DIR}/genpnrview "$1" "$HTMLFILE"
+        fi
+        # Get the file name
+        FILENAME=$( basename $1 )
+        IMAGES=$( dirname $0 )/../images
+        echo "Linking $1 to ${IMAGES}/${FILENAME}"
+        mkdir -p ${IMAGES}
+        # Check if hard link exists and is linked to a different file
+        if [ -L ${IMAGES}/${FILENAME} ]; then
+          if [ $( readlink ${IMAGES}/${FILENAME} ) != $1 ]; then
+                echo "Error: ${IMAGES}/${FILENAME} and was linked to $( readlink ${IMAGES}/${FILENAME} ). Relinking"
+                ln -f $1  ${IMAGES}/${FILENAME}
+          fi
+        else
+          # If link doesn't exist
+          ln -f $1  ${IMAGES}/${FILENAME}
+        fi
+        # TODO: Make this a function.
+        # Check if hard link exists and is linked to a different file
+        FILENAME=$( basename $HTMLFILE )
+        echo "Linking $HTMLFILE to ${IMAGES}/${FILENAME}"
+        if [ -L ${IMAGES}/${FILENAME} ]; then
+          if [ $( readlink ${IMAGES}/${FILENAME} ) != $1 ]; then
+                echo "Error: ${IMAGES}/${FILENAME} and was linked to $( readlink ${IMAGES}/${FILENAME} ). Relinking"
+                ln -f $HTMLFILE  ${IMAGES}/${FILENAME}
+          fi
+        else
+          # If link doesn't exist
+          ln -f $HTMLFILE  ${IMAGES}/${FILENAME}
+        fi
+        HOSTNAME=127.0.0.1
+        if [ -n "${CODESPACE_NAME}" ]; then
+          HOSTNAME="${CODESPACE_NAME}-3000.app.github.dev"
+          open https://${HOSTNAME}/html/${FILENAME}
+        else
+          open http://${HOSTNAME}:3000/html/${FILENAME}
+        fi
+    fi
+
+elif [[ $1 == *.routed.svg ]]; then
+    # Build the target.  Show output and capture to a temporary file
+    make -f ${DIR}/Makefile $1 2>&1 | tee /tmp/makehdl.log
+    # If make failed, parse the output and print any errors not already captured by yosys
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        # Check the temporary file for "^ERROR:" messages and reformat each
+        echo "dependencies.mk:0: ERROR: Failed to produce $1"
+        # Counter that starts at one
+        COUNTER=1
+        # For each line that starts with "ERROR:", get the entire line and print it
+        grep "^ERROR:" /tmp/makehdl.log | while read line; do
+            echo "dependencies.mk:$COUNTER: $line"
+            # Increment the counter
+            COUNTER=$((COUNTER+1))
+        done
+        exit 1
+    fi
+    # if the target was created, link & open
+    if [ -f $1 ]; then
+        if ! grep -q '</svg>' "$1"; then
+          echo "Warning: $1 missing </svg>; repairing malformed SVG output."
+          echo "</svg>" >> "$1"
+        fi
+        # Create the corresponding HTML file
+        HTMLFILE=$( echo $1 | sed 's/svg/html/' )
+        # Run genhtmlview.py to create the HTML file
+        # JSON file is the first argument with routed.svg replace by .routed.json
+        JSONFILE=$( echo $1 | sed 's/routed.svg/report.json/' )
+        if [ -f "$JSONFILE" ]; then
+          ${DIR}/genpnrview "$1" "$JSONFILE" "$HTMLFILE"
+        else
+          echo "Warning: $JSONFILE not found; generating HTML without utilization tables."
+          ${DIR}/genpnrview "$1" "$HTMLFILE"
+        fi
+        # Get the file name
+        FILENAME=$( basename $1 )
+        IMAGES=$( dirname $0 )/../images
+        echo "Linking $1 to ${IMAGES}/${FILENAME}"
+        mkdir -p ${IMAGES}
+        # Check if hard link exists and is linked to a different file
+        if [ -L ${IMAGES}/${FILENAME} ]; then
+          if [ $( readlink ${IMAGES}/${FILENAME} ) != $1 ]; then
+                echo "Error: ${IMAGES}/${FILENAME} and was linked to $( readlink ${IMAGES}/${FILENAME} ). Relinking"
+                ln -f $1  ${IMAGES}/${FILENAME}
+          fi
+        else
+          # If link doesn't exist
+          ln -f $1  ${IMAGES}/${FILENAME}
+        fi
+        # TODO: Make this a function.
+        # Check if hard link exists and is linked to a different file
+        FILENAME=$( basename $HTMLFILE )
+        echo "Linking $HTMLFILE to ${IMAGES}/${FILENAME}"
+        if [ -L ${IMAGES}/${FILENAME} ]; then
+          if [ $( readlink ${IMAGES}/${FILENAME} ) != $1 ]; then
+                echo "Error: ${IMAGES}/${FILENAME} and was linked to $( readlink ${IMAGES}/${FILENAME} ). Relinking"
+                ln -f $HTMLFILE  ${IMAGES}/${FILENAME}
+          fi
+        else
+          # If link doesn't exist
+          ln -f $HTMLFILE  ${IMAGES}/${FILENAME}
+        fi
+        # FILENAME is the HTML since it was last
+        HOSTNAME=127.0.0.1
+        if [ -n "${CODESPACE_NAME}" ]; then
+          HOSTNAME="${CODESPACE_NAME}-3000.app.github.dev"
+          open https://${HOSTNAME}/html/${FILENAME}
+        else
+          open http://${HOSTNAME}:3000/html/${FILENAME}
+        fi
+    fi
+elif [[ $1 == *.fw.bin ]]; then
+    echo "Building firmware binary $1"
+    # Build the target.  Show output and capture to a temporary file
+    make -f ${DIR}/Makefile $1 2>&1 | tee /tmp/makefw.log
+
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        # Check the temporary file for "^ERROR:" messages and reformat each
+        echo "dependencies.mk:0: ERROR: Failed to produce $1"
+        # Counter that starts at one
+        COUNTER=1
+
+        # Echo each line that starts with filename.ext:line: Error: message
+        # Update the grep to find lines
+        grep -E '^[^:]+\.[^:]+:[[:space:]]*[0-9]+:[[:space:]]*Error:' /tmp/makefw.log | while read line; do
+            # Replace "Error" with "ERROR"
+            echo "${line/Error:/ERROR:}"
+            # Increment the counter
+            COUNTER=$((COUNTER+1))
+        done
+        exit 1
+    fi
+    # if the target was created, link
+    if [ -f $1 ]; then
+        # Get the file name
+        FILENAME=$( basename $1 )
+        IMAGES=$( dirname $0 )/../images
+        echo "Linking $1 to ${IMAGES}/${FILENAME}"
+        mkdir -p ${IMAGES}
+        # Check if hard link exists and is linked to a different file
+        if [ -L ${IMAGES}/${FILENAME} ]; then
+          if [ $( readlink ${IMAGES}/${FILENAME} ) != $1 ]; then
+                echo "Error: ${IMAGES}/${FILENAME} and was linked to $( readlink ${IMAGES}/${FILENAME} ). Relinking"
+                ln -f $1  ${IMAGES}/${FILENAME}
+          fi
+        else
+          # If link doesn't exist
+          ln -f $1  ${IMAGES}/${FILENAME}
+        fi
+
+        # JSONFILENAME is file name with .json appended
+        JSONFILENAME=${FILENAME}.json
+        echo "Linking firmware.json to ${IMAGES}/${JSONFILENAME}"
+        if [ -L ${IMAGES}/${JSONFILENAME} ]; then
+          if [ $( readlink ${IMAGES}/${JSONFILENAME} ) != firmware.json ]; then
+                echo "Error: ${IMAGES}/${JSONFILENAME} and was linked to $( readlink ${IMAGES}/${JSONFILENAME} ). Relinking"
+                ln -f ${DIR}/../common/firmware/firmware.json  ${IMAGES}/${JSONFILENAME}
+          fi
+        else
+          # If link doesn't exist
+          ln -f ${DIR}/../common/firmware/firmware.json  ${IMAGES}/${JSONFILENAME}
+        fi
+        # TODO: Check for debugging info and copy it...
+    fi
+
+
+
+
+elif [[ $1 == *.bin ]]; then
+    # Build the target.  Show output and capture to a temporary file
+    make -f ${DIR}/Makefile $1 2>&1 | tee /tmp/makehdl.log
+    # If make failed, parse the output and print any errors not already captured by yosys
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        # Check the temporary file for "^ERROR:" messages and reformat each
+        echo "dependencies.mk:0: ERROR: Failed to produce $1"
+        # Counter that starts at one
+        COUNTER=1
+        # For each line that starts with "ERROR:", get the entire line and print it
+        grep "^ERROR:" /tmp/makehdl.log | while read line; do
+            echo "dependencies.mk:$COUNTER: $line"
+            # Increment the counter
+            COUNTER=$((COUNTER+1))
+        done
+        exit 1
+    fi
+    # if the target was created, link
+    if [ -f $1 ]; then
+        # Get the file name
+        FILENAME=$( basename $1 )
+        IMAGES=$( dirname $0 )/../images
+        echo "Linking $1 to ${IMAGES}/${FILENAME}"
+        mkdir -p ${IMAGES}
+        # Check if hard link exists and is linked to a different file
+        if [ -L ${IMAGES}/${FILENAME} ]; then
+          if [ $( readlink ${IMAGES}/${FILENAME} ) != $1 ]; then
+                echo "Error: ${IMAGES}/${FILENAME} and was linked to $( readlink ${IMAGES}/${FILENAME} ). Relinking"
+                ln -f $1  ${IMAGES}/${FILENAME}
+          fi
+        else
+          # If link doesn't exist
+          ln -f $1  ${IMAGES}/${FILENAME}
+        fi
+        # TODO: Check for debugging info and copy it...
+    fi
+else
+    echo "Error: No known target found for $1"
+fi

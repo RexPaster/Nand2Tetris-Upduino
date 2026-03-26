@@ -1,0 +1,588 @@
+#!/opt/venv/bin/python3
+import sys
+import json5
+import os
+from string import Template
+import re
+
+# May need to `pip3 install --break-system-packages pyjson5``
+
+# Map of filename patterns to task strings
+tasks = {
+    ".rtl.json":   # Simulation task
+        """
+        {
+            "label": "$name: simulate",
+            "type": "shell",
+            "command": "$${workspaceFolder}/.devcontainer/makehdl $target",
+            "options": {
+                "cwd": "$${workspaceFolder}/$dir"
+            },
+            // Set the working directory to state machine
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "base": "$$yosys",
+                "owner": "$name: simulate",
+                "fileLocation": ["relative", "$${workspaceFolder}/$dir"],
+            }
+        }
+        """,
+    ".aig.svg":  # Simple, flat AIG graph (Combinational logic)
+        """
+        {
+            "label": "$name: aig",
+            "type": "shell",
+            "command": "$${workspaceFolder}/.devcontainer/makehdl $target",
+            "options": {
+                "cwd": "$${workspaceFolder}/$dir"
+            },
+            // Set the working directory to state machine
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "base": "$$yosys",
+                "owner": "$name: aig",
+                "fileLocation": ["relative", "$${workspaceFolder}/$dir"],
+            }
+        }
+        """,
+    ".vcd":   # Test bench run / results
+            """
+            {
+                "label": "$name: testbench",
+                "type": "shell",
+                "command": "$${workspaceFolder}/.devcontainer/makehdl $target",
+                "options": {
+                    "cwd": "$${workspaceFolder}/$dir"
+                },
+                // Set the working directory to state machine
+                "presentation": {
+                    "echo": true,
+                    "reveal": "silent",
+                    "revealProblems": "onProblem",
+                    "focus": false,
+                    "panel": "dedicated",
+                    "showReuseMessage": true,
+                    "clear": true
+                },
+                "problemMatcher": {
+                    "base": "$$vvp",
+                    "owner": "$name: testbench",
+                    "fileLocation": ["relative", "$${workspaceFolder}/$dir"],
+                }
+            }
+            """,
+    ".fw.bin":     # Programmable bitstream
+        """
+        {
+            "label": "$name: image firmware",
+            "type": "shell",
+            "command": "$${workspaceFolder}/.devcontainer/makehdl $target",
+            "options": {
+                "cwd": "$${workspaceFolder}/$dir"
+            },
+            // Set the working directory to state machine
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "base": "$$yosys",
+                "owner": "$name: image",
+                "fileLocation": ["relative", "$${workspaceFolder}/$dir"],
+            }
+        }
+        """,
+    ".bin":     # Programmable bitstream
+        """
+        {
+            "label": "$name: image",
+            "type": "shell",
+            "command": "$${workspaceFolder}/.devcontainer/makehdl $target",
+            "options": {
+                "cwd": "$${workspaceFolder}/$dir"
+            },
+            // Set the working directory to state machine
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "base": "$$yosys",
+                "owner": "$name: image",
+                "fileLocation": ["relative", "$${workspaceFolder}/$dir"],
+            }
+        }
+        """,
+    ".placed.svg":     # Placement in part
+        """
+        {
+            "label": "$name: image",
+            "type": "shell",
+            "command": "$${workspaceFolder}/.devcontainer/makehdl $target",
+            "options": {
+                "cwd": "$${workspaceFolder}/$dir"
+            },
+            // Set the working directory to state machine
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "base": "$$yosys",
+                "owner": "$name: image",
+                "fileLocation": ["relative", "$${workspaceFolder}/$dir"],
+            }
+        }
+        """,
+    ".routed.svg":     # Placement in part
+        """
+        {
+            "label": "$name: image",
+            "type": "shell",
+            "command": "$${workspaceFolder}/.devcontainer/makehdl $target",
+            "options": {
+                "cwd": "$${workspaceFolder}/$dir"
+            },
+            // Set the working directory to state machine
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "base": "$$yosys",
+                "owner": "$name: image",
+                "fileLocation": ["relative", "$${workspaceFolder}/$dir"],
+            }
+        }
+        """,
+    ".ice40.svg":   # iCE 40 mapping
+        """
+        {
+            "label": "$name: ice40 svg",
+            "type": "shell",
+            "command": "$${workspaceFolder}/.devcontainer/makehdl $target",
+            "options": {
+                "cwd": "$${workspaceFolder}/$dir"
+            },
+            // Set the working directory to state machine
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "base": "$$yosys",
+                "owner": "$name: ice40 svg",
+                "fileLocation": ["relative", "$${workspaceFolder}/$dir"],
+            }
+        }
+        """,
+    ".ice40.dot":   # iCE 40 mapping
+        """
+        {
+            "label": "$name: ice40 dot",
+            "type": "shell",
+            "command": "$${workspaceFolder}/.devcontainer/makehdl $target",
+            "options": {
+                "cwd": "$${workspaceFolder}/$dir"
+            },
+            // Set the working directory to state machine
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "base": "$$yosys",
+                "owner": "$name: dot",
+                "fileLocation": ["relative", "$${workspaceFolder}/$dir"],
+            }
+        }
+        """,
+    ".rom.txt":   # ROM textfile
+        """
+        {
+            "label": "$name: rom",
+            "type": "shell",
+            "command": "$${workspaceFolder}/.devcontainer/makehdl $target",
+            "options": {
+                "cwd": "$${workspaceFolder}/$dir"
+            },
+            // Set the working directory to state machine
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "base": "$$yosys",
+                "owner": "$name: simulate",
+                "fileLocation": ["relative", "$${workspaceFolder}/$dir"],
+            }
+        }
+        """,
+    "server":
+        """
+        {
+            "label": "FPGA Programmer Server",
+            "type": "shell",
+            "command": "node server.js $${workspaceFolder}/images",
+            "options": {
+                "cwd": "/opt/fpgaprog"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            }
+        }
+        """,
+    "rebuild":
+        """
+        {
+            "label": "Rebuild Tasks",
+            "type": "shell",
+            "command": "$${workspaceFolder}/.devcontainer/rebuildTasks",
+            "options": {
+                "cwd": "$${workspaceFolder}/.devcontainer"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+        }
+        """,
+    "refresh":
+        """
+        {
+            "label": "Refresh Tasks",
+            "command": "$${command:vscodeTasksSidebar.refresh}",
+            "dependsOn": "Rebuild Tasks",
+        }
+        """,
+    ".edit":   # Edit files
+        """
+        {
+            "label": "$name: edit",
+            "type": "shell",
+            "command": "code $${workspaceFolder}/$dir/$name",
+        }
+        """,
+    ".shell":   # Run a shell command files
+        """
+        {
+            "label": "$name: shell",
+            "type": "shell",
+            "command": "$run",
+            "options": {
+                "cwd": "$${workspaceFolder}/$dir"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+        }
+        """,
+    ".riscv-sim":
+        """
+        {
+            "label": "$name: Venus",
+            "type": "process",
+            "command": "$${command:workbench.action.debug.start}",
+            "dependsOrder": "sequence",
+        }
+        """,
+        "cocotb":  # Tests in a python file (as the target)
+        """
+        {
+            "label": "$name Testbench",
+            "type": "shell",
+            "command": "$${workspaceFolder}/.devcontainer/runcocotb $target",
+            "options": {
+                "cwd": "$${workspaceFolder}/$dir/"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "owner": "testbench",
+                "fileLocation": [
+                    "autoDetect",
+                    "$${workspaceFolder}/$dir"
+                ],
+                "source":"(Testbench)",
+                "pattern":[
+                    {
+                        "regexp": "File \\"([^\\"]*)\\", line (\\\\d+), in (.*)",
+                        "file": 1,
+                        "line": 2
+                    },
+                    {
+                        "regexp": "AssertionError|assert|Done (.*)",
+                        "message": 1,
+                        "loop": true
+                    }
+                ],
+            },
+        }
+        """,
+}
+
+# "problemMatcher": {
+#                 "fileLocation": [
+#                     "autoDetect",
+#                     "${workspaceFolder}/",],
+#                     "source":"Testbench"
+#                 "pattern":[ {
+#                     "regexp": "File \"([^\"]*)\", line (\\d+), in (.*)",
+#                     "file": 1,
+#                     "line": 2
+#                 },
+#                 {
+#                     "regexp": "(AssertionError.*|assert .*)",
+#                     "message": 1,
+#                     "loop": true
+#                 }
+#             ],
+#             },
+
+data = {}
+
+def updateTasks(taskJSON):
+    label = taskJSON['label']
+    # If there's a task with the same name in the tasks.json, update it;  Otherwise add it.
+    updated = False
+    for j in range(len(data['tasks'])):
+        if 'label' in data['tasks'][j] and data['tasks'][j]['label'] == label:
+            print("Updating task: " + label)
+            data['tasks'][j] = taskJSON
+            updated = True
+            break
+    if not updated:
+        print("Creating new task: " + label)
+        data['tasks'].append(taskJSON)
+
+
+# Pull out any flags (start with -)
+flags = [arg for arg in sys.argv if arg.startswith('-')]
+nonFlags = [arg for arg in sys.argv[1:] if not arg.startswith('-')]
+
+
+workspaces = os.listdir('/workspaces')
+# Filter out any hidden directories
+workspaces = [w for w in workspaces if not w.startswith('.')]
+if len(workspaces) != 1:
+    print("There should be exactly one workspace directory in /workspaces")
+    sys.exit(1)
+fullPath = os.path.join('/workspaces', workspaces[0])
+fullFilePath = os.path.join(fullPath, '.vscode/tasks.json')
+
+
+
+
+# if flags does contain -m, then read in prior tasks.json and merge updates
+if '-m' in flags:
+    # Open and parse .vscode/tasks.json if it exists
+    # Check if tasks.json exists
+    try:
+        f = open(fullFilePath)
+        data = json5.load(f)
+        f.close()
+    except FileNotFoundError:
+        print(f"Creating {fullFilePath}")
+        data = {"version": "2.0.0","tasks": []}
+    except Exception as e:
+        print(f"Error reading {fullFilePath}")
+        print(e)
+        sys.exit(1)
+else:
+    # Otherwise, create a new tasks.json
+    print(f"Creating {fullFilePath}")
+    data = {"version": "2.0.0","tasks": []}
+
+# # Check for other flags:
+# if '-r' in flags:
+#     task = Template(tasks['rebuild']).substitute()
+#     updateTasks(json5.loads(task))
+# if '-server' in flags:
+#     task = Template(tasks['server']).substitute()
+#     updateTasks(json5.loads(task))
+
+def printHelp():
+    print("Usage: python rebuildTasksJson.py [-o, -server, -r]")
+    print("  -m: Merge into existing tasks.json")
+    # print("  -server: Include the server task")
+    # print("  -r: Include the rebuild tasks task (without overwrite)")
+
+# Validate flags
+for flag in flags:
+    # if flag not in ['-o', '-server', '-r', '-h', '--help']:
+    if flag not in ['-m', '-h', '--help']:
+        print(f"Unrecognized flag: {flag}")
+        printHelp()
+        sys.exit(1)
+
+if '-h' in flags or '--help' in flags:
+    printHelp()
+    sys.exit(0)
+
+# Check for the correct number of arguments
+if len(nonFlags) != 0:
+    print("Usage: python rebuildTasksJson.py [-o, -server, -r]")
+    sys.exit(1)
+
+
+# Find all the "dependencies.mk" in the fullPath and all subdirectories
+for root, dirs, files in os.walk(fullPath):
+    for file in files:
+        if file == "dependencies.mk":
+            print("Found dependencies.mk in " + root)
+            relativePath = root[len(fullPath)+1:]
+            # open the dependencies and read in all the targets
+            with open(os.path.join(root, file)) as f:
+                # Iterate through all lines and match regex 's/^([a-zA-Z0-9\._-]+):.*/\1/p'
+                lastLine = None
+                overrideLabel = None
+                overrideType = None
+                dependsOn = None
+                hide = None
+                for line in f:
+                    # Match the target
+                    match = re.match(r'^([a-zA-Z0-9/\._-]+)\w*:', line)
+                    if match:
+                        target = match.group(1)
+                        print(f"Found target: {target}")
+                        # Check each task type for a match
+                        task = None
+                        for key in tasks.keys():
+                            if overrideType==key or (overrideType==None and target.endswith(key)):
+                                template = tasks[key] if overrideType==None else tasks[overrideType]
+                                # remove the extension
+                                name = target[:-len(key)]
+                                # Retain only anything after the last '/'
+                                name = name[name.rfind('/')+1:]
+                                task = Template(template).substitute(name=name, target=target, dir=relativePath, run=run)
+                                # If the last-line was a comment line and had label="...", update the task with that label
+                                print("Name: " + name)
+                                json = json5.loads(task)
+                                if overrideLabel is not None:
+                                    json['label'] = overrideLabel
+                                if dependsOn is not None:
+                                    # Add a dependsOn field
+                                    json['dependsOn'] = dependsOn
+                                    json['dependsOrder'] = "sequence"
+                                if hide is not None:
+                                    # Add a hide field
+                                    json['hide'] = True
+                                # Update the tasks.json
+                                updateTasks(json)
+                                break
+                        if task is None:
+                            print(f"Unrecognized target: {target}")
+                    lastLine = line
+
+                    # See if there are overrides for the label and type
+                    overrideLabel = None
+                    overrideType = None
+                    dependsOn = None
+                    hide = None
+                    run = None
+                    if lastLine.startswith("#"):
+                        if "label=" in lastLine:
+                            overrideLabel = re.search(r'label="([^"]+)"', lastLine).group(1)
+                        if "type=" in lastLine:
+                            overrideType = re.search(r'type="([^"]+)"', lastLine).group(1)
+                        if "run=" in lastLine:
+                            run = re.search(r'run="([^"]+)"', lastLine).group(1)
+                        if "dependsOn=" in lastLine:
+                            print("*********")
+                            print(lastLine)
+                            dependsOn = re.search(r'dependsOn=("[^"]+"|\[.*\])', lastLine).group(1)
+                            # if dependsOn starts with a [ (it's a list) turn it into a python list
+                            if dependsOn.startswith('['):
+                                dependsOn = json5.loads(dependsOn)
+                            print(dependsOn)
+                        if overrideType!= None or overrideLabel!=None:
+                            print(f"Found override: {overrideLabel}, {overrideType}")
+                        if "hide=" in lastLine:
+                            hidden = re.search(r'hide="([^"]+)"', lastLine).group(1)
+                            if hidden == "true":
+                               hide = True
+                               print(f"Found hide: {hide}")
+
+
+# Write the updated tasks.json
+# print(json5.dumps(data, indent=4, quote_keys=True))
+# find /workspaces/***/.vscode directory
+# Get the directory in /workspaces
+with open(fullFilePath, 'w') as f:
+    f.write(json5.dumps(data, indent=4, quote_keys=True))
+

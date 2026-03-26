@@ -1,0 +1,194 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Edit top.sv",
+            "type": "shell",
+            "command": "code ${workspaceFolder}/top.sv"
+        },
+        {
+            "label": "FPGA Image Server",
+            "type": "shell",
+            "command": "node server.js ${workspaceFolder}/images",
+            "options": {
+                "cwd": "/opt/fpgaprog"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            }
+        },
+        {
+            "label": "Simulate top.sv",
+            "type": "shell",
+            "command": "${workspaceFolder}/.devcontainer/makehdl products/top.rtl.json",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "base": "$yosys",
+                "owner": "top: simulate",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceFolder}"
+                ]
+            }
+        },
+        {
+            "label": "top testbench verification",
+            "type": "shell",
+            "command": "${workspaceFolder}/.devcontainer/makehdl products/top_tb.vcd",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "base": "$vvp",
+                "owner": "top_tb: testbench",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceFolder}"
+                ]
+            }
+        },
+        {
+            "label": "top AIG Mapping",
+            "type": "shell",
+            "command": "${workspaceFolder}/.devcontainer/makehdl products/top.aig.svg",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "base": "$yosys",
+                "owner": "top: aig",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceFolder}"
+                ]
+            }
+        },
+        {
+            "label": "top iCE40 Mapping",
+            "type": "shell",
+            "command": "${workspaceFolder}/.devcontainer/makehdl products/top.ice40.svg",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "base": "$yosys",
+                "owner": "top: ice40 svg",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceFolder}"
+                ]
+            }
+        },
+        {
+            "label": "top iCE40 Bitstream",
+            "type": "shell",
+            "command": "${workspaceFolder}/.devcontainer/makehdl products/top.bin",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "base": "$yosys",
+                "owner": "top: image",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceFolder}"
+                ]
+            }
+        },
+        {
+            "label": "top iCE40 Routing",
+            "type": "shell",
+            "command": "${workspaceFolder}/.devcontainer/makehdl products/top.routed.svg",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": {
+                "base": "$yosys",
+                "owner": "top: routed",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceFolder}"
+                ]
+            }
+        },
+        {
+            "label": "Flash ROM (SPI)",
+            "type": "shell",
+            "command": "${workspaceFolder}/.devcontainer/makehdl products/rom.flash.bin",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "focus": true,
+                "panel": "dedicated",
+                "showReuseMessage": true,
+                "clear": true
+            }
+        }
+    ]
+}
