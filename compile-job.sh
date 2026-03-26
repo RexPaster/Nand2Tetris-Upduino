@@ -12,16 +12,43 @@
 set -e
 
 # ----------------------------
-# Ensure local binaries are in PATH
+# Miniconda setup (local, user)
 # ----------------------------
-export PATH="$HOME/.local/bin:$PATH"
+CONDA_DIR="$HOME/miniconda3"
+ENV_NAME="yosys_env"
+
+if [ ! -d "$CONDA_DIR" ]; then
+    echo "📥 Installing Miniconda locally..."
+    wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    bash miniconda.sh -b -p "$CONDA_DIR"
+    rm miniconda.sh
+fi
+
+export PATH="$CONDA_DIR/bin:$PATH"
 
 # ----------------------------
-# Tool binaries (assume already installed)
+# Create / activate Conda env
 # ----------------------------
-YOSYS_BIN="$HOME/.local/bin/yosys"
-NEXTPNR_BIN="$HOME/.local/bin/nextpnr-ice40"
-ICEPACK_BIN="$HOME/.local/bin/icepack"
+if ! conda info --envs | grep -q "$ENV_NAME"; then
+    echo "🛠 Creating Conda environment with Yosys, NextPNR, IceStorm..."
+    conda create -y -n "$ENV_NAME" -c conda-forge yosys nextpnr-ice40 icestorm python
+fi
+
+echo "⚡ Activating Conda environment..."
+source "$CONDA_DIR/etc/profile.d/conda.sh"
+conda activate "$ENV_NAME"
+
+# ----------------------------
+# Tool binaries (from Conda)
+# ----------------------------
+YOSYS_BIN=$(which yosys)
+NEXTPNR_BIN=$(which nextpnr-ice40)
+ICEPACK_BIN=$(which icepack)
+
+echo "✅ Tools ready:"
+echo "   Yosys: $YOSYS_BIN"
+echo "   NextPNR: $NEXTPNR_BIN"
+echo "   IcePack: $ICEPACK_BIN"
 
 # ----------------------------
 # Synthesis / P&R / Bitstream
