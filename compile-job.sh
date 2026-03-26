@@ -17,7 +17,6 @@ set -e
 if [ -z "$SLURM_JOB_ID" ]; then
     echo "📤 Submitting SLURM job..."
     sbatch "$0"
-    tail -f -v sim3.out sim3.err
     exit 0
 fi
 
