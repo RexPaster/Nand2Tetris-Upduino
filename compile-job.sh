@@ -7,6 +7,7 @@
 #SBATCH --ntasks=2
 #SBATCH --mem=64G
 #SBATCH --time=02:00:00
+#SBATCH -A engr-class-any
 
 set -e
 
