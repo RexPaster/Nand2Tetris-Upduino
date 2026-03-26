@@ -12,6 +12,15 @@
 set -e
 
 # ----------------------------
+# Self-submit to SLURM if not already running
+# ----------------------------
+if [ -z "$SLURM_JOB_ID" ]; then
+    echo "📤 Submitting SLURM job..."
+    sbatch "$0"
+    exit 0
+fi
+
+# ----------------------------
 # Local Miniconda path and environment
 # ----------------------------
 CONDA_DIR="$HOME/miniconda3"
@@ -27,7 +36,7 @@ fi
 
 export PATH="$CONDA_DIR/bin:$PATH"
 
-# Load conda function
+# Load conda functions
 source "$CONDA_DIR/etc/profile.d/conda.sh"
 
 # Create environment if it doesn't exist
