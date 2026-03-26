@@ -29,7 +29,7 @@ ENV_NAME="yosys_env"
 WORKDIR=$(pwd)
 
 # ----------------------------
-# Load / install Conda if needed
+# Load / install Miniconda if needed
 # ----------------------------
 if [ ! -d "$CONDA_DIR" ]; then
     echo "📥 Installing Miniconda..."
@@ -41,7 +41,7 @@ export PATH="$CONDA_DIR/bin:$PATH"
 source "$CONDA_DIR/etc/profile.d/conda.sh"
 
 # ----------------------------
-# Accept Conda Terms of Service
+# Accept Conda Terms of Service automatically
 # ----------------------------
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main || true
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r || true
