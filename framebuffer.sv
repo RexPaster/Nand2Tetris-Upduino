@@ -141,13 +141,13 @@ module framebuffer #(
         write_col = write_addr[4:0];
 
         // Write is valid for full screen (512x256).
-        write_in_range = (int'(write_row) < V_WRITEABLE) && (int'(write_col) < WORDS_PER_ROW);
-        write_word_calc = (int'(write_row) * WORDS_PER_ROW) + int'(write_col);
+        write_in_range = (write_row < V_WRITEABLE) && (write_col < WORDS_PER_ROW);
+        write_word_calc = (write_row * WORDS_PER_ROW) + write_col;
         write_word_addr = write_word_calc[WRITE_ADDR_W-1:0];
 
         // Read address from VGA: Hack screen word mapping: addr = y * 32 + floor(x / 16).
         if (fb_in_range) begin
-            read_word_calc = (int'(v_cnt) * WORDS_PER_ROW) + int'(h_cnt[9:4]);
+            read_word_calc = (v_cnt * WORDS_PER_ROW) + h_cnt[9:4];
             read_word_addr = read_word_calc[WRITE_ADDR_W-1:0];
             bit_index = h_cnt[3:0];
         end else begin
@@ -156,9 +156,9 @@ module framebuffer #(
             bit_index = '0;
         end
 
-        read_is_lut = (int'(read_word_addr) >= BRAM_WORDS);
-        cpu_read_is_lut = (int'(read_addr) >= BRAM_WORDS);
-        write_is_lut = (int'(write_word_addr) >= BRAM_WORDS);
+        read_is_lut = (read_word_addr >= BRAM_WORDS);
+        cpu_read_is_lut = (read_addr >= BRAM_WORDS);
+        write_is_lut = (write_word_addr >= BRAM_WORDS);
         lut_read_offset = read_word_addr - BRAM_WORDS[WRITE_ADDR_W-1:0];
         cpu_lut_read_offset = read_addr - BRAM_WORDS[WRITE_ADDR_W-1:0];
         lut_write_offset = write_word_addr - BRAM_WORDS[WRITE_ADDR_W-1:0];
