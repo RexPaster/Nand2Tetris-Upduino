@@ -25,14 +25,24 @@ fi
 # ----------------------------
 WORKDIR=$(pwd)
 OSSCAD_DIR="$WORKDIR/oss-cad-suite"
-OSSCAD_URL="https://github.com/YosysHQ/oss-cad-suite-build/releases/latest/download/oss-cad-suite-linux-x64.tgz"
+OSSCAD_URL="https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-03-26/oss-cad-suite-linux-x64-20260326.tgz"
 
 # ----------------------------
 # Install oss-cad-suite if missing
 # ----------------------------
+
 if [ ! -d "$OSSCAD_DIR" ]; then
     echo "📥 Downloading oss-cad-suite..."
-    curl -L "$OSSCAD_URL" | tar xz
+    curl -L -o oss-cad-suite.tgz "$OSSCAD_URL"
+    if file oss-cad-suite.tgz | grep -q 'gzip compressed data'; then
+        tar xzf oss-cad-suite.tgz
+        rm oss-cad-suite.tgz
+    else
+        echo "❌ Download failed or file is not a valid .tgz archive."
+        cat oss-cad-suite.tgz
+        rm oss-cad-suite.tgz
+        exit 1
+    fi
 fi
 
 # Source oss-cad-suite environment for full toolchain setup
