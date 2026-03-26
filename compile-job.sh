@@ -29,15 +29,18 @@ ENV_NAME="yosys_env"
 WORKDIR=$(pwd)
 
 # ----------------------------
-# Load / install Miniconda if needed
+# Install Miniconda locally if missing
 # ----------------------------
 if [ ! -d "$CONDA_DIR" ]; then
-    echo "📥 Installing Miniconda..."
-    wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    echo "📥 Installing Miniconda locally..."
+    curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o miniconda.sh
     bash miniconda.sh -b -p "$CONDA_DIR"
     rm miniconda.sh
 fi
+
 export PATH="$CONDA_DIR/bin:$PATH"
+
+# Load conda function
 source "$CONDA_DIR/etc/profile.d/conda.sh"
 
 # ----------------------------
