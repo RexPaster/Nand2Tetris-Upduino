@@ -95,10 +95,15 @@ if [ ! -f "$PREFIX/bin/icepack" ]; then
         git clone https://github.com/YosysHQ/icestorm.git "$WORKDIR/icestorm"
     fi
     cd "$WORKDIR/icestorm"
+
     make -j$(nproc) -C icebram all
     make -j$(nproc) -C icetime all
     make -j$(nproc) -C icepack all
-    make PREFIX=$PREFIX install
+
+    make PREFIX=$PREFIX -C icebram install
+    make PREFIX=$PREFIX -C icetime install
+    make PREFIX=$PREFIX -C icepack install
+
     cd "$WORKDIR"
 fi
 
