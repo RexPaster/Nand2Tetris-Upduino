@@ -40,7 +40,7 @@ export LDFLAGS="-L$PREFIX/lib"
 if [ ! -f "$PREFIX/lib/libusb-1.0.a" ]; then
     echo "📦 Installing libusb..."
     cd $BUILD_DIR
-    wget https://github.com/libusb/libusb/releases/download/v1.0.26/libusb-1.0.26.tar.bz2
+    curl -LO https://github.com/libusb/libusb/releases/download/v1.0.26/libusb-1.0.26.tar.bz2
     tar xjf libusb-1.0.26.tar.bz2
     cd libusb-1.0.26
     ./configure --prefix=$PREFIX
@@ -56,7 +56,7 @@ fi
 if [ ! -f "$PREFIX/lib/libftdi1.a" ]; then
     echo "📦 Installing libftdi..."
     cd $BUILD_DIR
-    wget https://www.intra2net.com/en/developer/libftdi/download/libftdi1-1.5.tar.bz2
+    curl -LO https://www.intra2net.com/en/developer/libftdi/download/libftdi1-1.5.tar.bz2
     tar xjf libftdi1-1.5.tar.bz2
     cd libftdi1-1.5
     ./configure --prefix=$PREFIX --enable-static=no
