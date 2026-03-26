@@ -35,51 +35,16 @@ export CFLAGS="-I$PREFIX/include"
 export LDFLAGS="-L$PREFIX/lib"
 
 # ----------------------------
-# Build libusb locally
-# ----------------------------
-if [ ! -f "$PREFIX/lib/libusb-1.0.a" ]; then
-    echo "📦 Installing libusb..."
-    cd $BUILD_DIR
-    curl -LO https://github.com/libusb/libusb/releases/download/v1.0.26/libusb-1.0.26.tar.bz2
-    tar xjf libusb-1.0.26.tar.bz2
-    cd libusb-1.0.26
-    ./configure --prefix=$PREFIX
-    make -j$(nproc)
-    make install
-else
-    echo "✅ libusb already installed, skipping."
-fi
-
-# ----------------------------
-# Build libftdi locally (without udev)
-# ----------------------------
-if [ ! -f "$PREFIX/lib/libftdi1.a" ]; then
-    echo "📦 Installing libftdi..."
-    cd $BUILD_DIR
-    rm -rf libftdi1-1.5
-    curl -LO https://www.intra2net.com/en/developer/libftdi/download/libftdi1-1.5.tar.bz2
-    tar xjf libftdi1-1.5.tar.bz2
-    cd libftdi1-1.5
-    ./configure --prefix=$PREFIX --enable-static=no --disable-udev
-    make -j$(nproc)
-    make install
-else
-    echo "✅ libftdi already installed, skipping."
-fi
-
-# ----------------------------
-# IceStorm
+# IceStorm (without iceprog)
 # ----------------------------
 if [ ! -f "$PREFIX/bin/icepack" ]; then
-    echo "📂 Installing icestorm..."
+    echo "📂 Installing icestorm (no iceprog)..."
     cd $WORKDIR
     git clone https://github.com/YosysHQ/icestorm.git "$WORKDIR/icestorm"
     cd "$WORKDIR/icestorm"
     make -C icebram all
     make -C icetime all
     make -C icepack all
-    # iceprog needs local libftdi
-    make -C iceprog PREFIX=$PREFIX
     make PREFIX=$PREFIX install
 else
     echo "✅ IceStorm already installed, skipping."
@@ -87,7 +52,6 @@ fi
 ICEBRAM_BIN="$PREFIX/bin/icebram"
 ICETIME_BIN="$PREFIX/bin/icetime"
 ICEPACK_BIN="$PREFIX/bin/icepack"
-ICEPROG_BIN="$PREFIX/bin/iceprog"
 
 # ----------------------------
 # Yosys
@@ -144,4 +108,4 @@ echo "🔧 Packing bitstream..."
 "$ICEPACK_BIN" top.asc top.bin
 
 echo "✅ Bitstream ready: top.bin"
-echo "You can program it using: $ICEPROG_BIN top.bin"
+echo "⚠️ Note: iceprog is not installed. To flash your FPGA, build iceprog locally."
