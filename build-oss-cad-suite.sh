@@ -1,11 +1,10 @@
+#!/bin/bash
 # ----------------------------
 # Clean up old logs
 # ----------------------------
 rm -f yosys.log nextpnr.log icepack.log
 > main-log.out
 > main-log.err
-
-#!/bin/bash
 #SBATCH --job-name=FPGA_SYNTHESIS
 #SBATCH --output=main-log.out
 #SBATCH --error=main-log.err
