@@ -1,10 +1,4 @@
 #!/bin/bash
-# ----------------------------
-# Clean up old logs
-# ----------------------------
-rm -f yosys.log nextpnr.log icepack.log
-> main-log.out
-> main-log.err
 #SBATCH --job-name=FPGA_SYNTHESIS
 #SBATCH --output=main-log.out
 #SBATCH --error=main-log.err
@@ -16,6 +10,13 @@ rm -f yosys.log nextpnr.log icepack.log
 #SBATCH --mem=64G
 #SBATCH --time=04:00:00
 #SBATCH -A engr-class-any
+
+# ----------------------------
+# Clean up old logs
+# ----------------------------
+rm -f yosys.log nextpnr.log icepack.log
+> main-log.out
+> main-log.err
 
 set -e
 
