@@ -6,7 +6,6 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --constraint=amd
 #SBATCH --mem=64G
 #SBATCH --time=04:00:00
 #SBATCH -A engr-class-any
@@ -20,14 +19,29 @@ rm -f yosys.log nextpnr.log icepack.log
 
 set -e
 
-
 # ----------------------------
 # Self-submit if not running under SLURM
 # ----------------------------
 if [ -z "$SLURM_JOB_ID" ]; then
-	echo "📤 Submitting SLURM job..."
-	sbatch "$0"
-	exit 0
+    echo "📤 Selecting best idle node..."
+
+    # get the best idle node: highest CPUs, then most memory
+    BEST_NODE=$(sinfo -h -o "%N %c %m %t" | awk '$4=="idle"{print $0}' | sort -k2,2nr -k3,3nr | head -n1 | awk '{print $1}')
+
+    if [ -z "$BEST_NODE" ]; then
+        echo "❌ No idle nodes available. Exiting."
+        exit 1
+    fi
+
+    # get its CPU count and memory
+    BEST_CPUS=$(sinfo -h -o "%N %c %m %t" | awk -v node="$BEST_NODE" '$1==node {print $2}')
+    BEST_MEM=$(sinfo -h -o "%N %c %m %t" | awk -v node="$BEST_NODE" '$1==node {print $3}')
+
+    echo "Selected node: $BEST_NODE with $BEST_CPUS CPUs and $BEST_MEM MB RAM"
+
+    # submit job to that node
+    sbatch --nodelist="$BEST_NODE" --cpus-per-task="$BEST_CPUS" --mem="$BEST_MEM" "$0"
+    exit 0
 fi
 
 
