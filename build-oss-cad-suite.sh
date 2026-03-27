@@ -23,24 +23,31 @@ set -e
 # Self-submit if not running under SLURM
 # ----------------------------
 if [ -z "$SLURM_JOB_ID" ]; then
-    echo "📤 Selecting best idle node..."
+    echo "📤 Selecting best idle node with highest CPUs..."
 
-    # get the best idle node: highest CPUs, then most memory
-    BEST_NODE=$(sinfo -h -o "%N %c %m %t" | awk '$4=="idle"{print $0}' | sort -k2,2nr -k3,3nr | head -n1 | awk '{print $1}')
+    # pick the idle node with the most CPUs
+    BEST_NODE=$(sinfo -h -o "%N %c %m %t" | awk '$4=="idle"{print $0}' | sort -k2,2nr | head -n1 | awk '{print $1}')
 
     if [ -z "$BEST_NODE" ]; then
         echo "❌ No idle nodes available. Exiting."
         exit 1
     fi
 
-    # get its CPU count and memory
-    BEST_CPUS=$(sinfo -h -o "%N %c %m %t" | awk -v node="$BEST_NODE" '$1==node {print $2}')
-    BEST_MEM=$(sinfo -h -o "%N %c %m %t" | awk -v node="$BEST_NODE" '$1==node {print $3}')
+    echo "Selected node: $BEST_NODE"
 
-    echo "Selected node: $BEST_NODE with $BEST_CPUS CPUs and $BEST_MEM MB RAM"
-
-    # submit job to that node
-    sbatch --nodelist="$BEST_NODE" --cpus-per-task="$BEST_CPUS" --mem="$BEST_MEM" "$0"
+    # submit job to that node using all other variables already set in the script
+    sbatch --nodelist="$BEST_NODE" \
+           --job-name="$SLURM_JOB_NAME" \
+           --output="$SLURM_OUTPUT" \
+           --error="$SLURM_ERROR" \
+           --partition="$SLURM_PARTITION" \
+           --nodes="$SLURM_NODES" \
+           --ntasks="$SLURM_NTASKS" \
+           --cpus-per-task="$SLURM_CPUS_PER_TASK" \
+           --mem="$SLURM_MEM" \
+           --time="$SLURM_TIME" \
+           -A "$SLURM_ACCOUNT" \
+           "$0"
     exit 0
 fi
 
