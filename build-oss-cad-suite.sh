@@ -2,10 +2,10 @@
 #SBATCH --job-name=FPGA_SYNTHESIS
 #SBATCH --output=main-log.out
 #SBATCH --error=main-log.err
-#SBATCH --partition=general-cpu
+#SBATCH --partition=ib-linuxlab
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=3
 #SBATCH --mem=64G
 #SBATCH --time=04:00:00
 #SBATCH -A engr-class-any
