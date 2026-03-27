@@ -39,7 +39,7 @@ echo "Using $SLURM_CPUS_PER_TASK CPUs"
 # Paths
 # ----------------------------
 WORKDIR=$(pwd)
-OSSCAD_DIR="$WORKDIR/oss-cad-suite"
+OSSCAD_DIR="$(dirname "$WORKDIR")/oss-cad-suite"
 OSSCAD_URL="https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-03-26/oss-cad-suite-linux-x64-20260326.tgz"
 
 
@@ -47,10 +47,11 @@ OSSCAD_URL="https://github.com/YosysHQ/oss-cad-suite-build/releases/download/202
 # Install oss-cad-suite if missing
 # ----------------------------
 if [ ! -d "$OSSCAD_DIR" ]; then
-	echo "📥 Downloading oss-cad-suite..."
-	curl -L -o oss-cad-suite.tgz "$OSSCAD_URL"
-	tar xzf oss-cad-suite.tgz
-	rm oss-cad-suite.tgz
+	echo "📥 Downloading oss-cad-suite to $OSSCAD_DIR..."
+	mkdir -p "$OSSCAD_DIR"
+	curl -L -o "$OSSCAD_DIR/oss-cad-suite.tgz" "$OSSCAD_URL"
+	tar -xzf "$OSSCAD_DIR/oss-cad-suite.tgz" -C "$(dirname "$OSSCAD_DIR")"
+	rm "$OSSCAD_DIR/oss-cad-suite.tgz"
 fi
 
 
