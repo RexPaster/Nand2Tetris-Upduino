@@ -2,7 +2,7 @@
 #SBATCH --job-name=FPGA_SYNTHESIS
 #SBATCH --output=main-log.out
 #SBATCH --error=main-log.err
-#SBATCH --partition=ib-linuxlab
+#SBATCH --partition=cpu-compute-debug
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
