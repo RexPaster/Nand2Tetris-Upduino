@@ -290,17 +290,23 @@ elif [[ $1 == *.bin ]]; then
         # Get the file name
         FILENAME=$( basename $1 )
         IMAGES=$( dirname $0 )/../images
-        echo "Linking $1 to ${IMAGES}/${FILENAME}"
         mkdir -p ${IMAGES}
-        # Check if hard link exists and is linked to a different file
-        if [ -L ${IMAGES}/${FILENAME} ]; then
-          if [ $( readlink ${IMAGES}/${FILENAME} ) != $1 ]; then
-                echo "Error: ${IMAGES}/${FILENAME} and was linked to $( readlink ${IMAGES}/${FILENAME} ). Relinking"
-                ln -f $1  ${IMAGES}/${FILENAME}
-          fi
+        TARGET_LINK=$( realpath -m ${IMAGES}/${FILENAME} )
+        TARGET_PATH=$( realpath $1 )
+        if [ "$TARGET_PATH" = "$TARGET_LINK" ]; then
+          echo "Target already at ${TARGET_LINK}; skipping image link"
         else
-          # If link doesn't exist
-          ln -f $1  ${IMAGES}/${FILENAME}
+          echo "Linking $1 to ${TARGET_LINK}"
+          # Check if hard link exists and is linked to a different file
+          if [ -L ${TARGET_LINK} ]; then
+            if [ $( readlink ${TARGET_LINK} ) != $1 ]; then
+                  echo "Error: ${TARGET_LINK} and was linked to $( readlink ${TARGET_LINK} ). Relinking"
+                  ln -f $1  ${TARGET_LINK}
+            fi
+          else
+            # If link doesn't exist
+            ln -f $1  ${TARGET_LINK}
+          fi
         fi
         # TODO: Check for debugging info and copy it...
     fi

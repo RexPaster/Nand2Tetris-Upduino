@@ -21,7 +21,7 @@ ROM_FLASH_IMAGE_FROM_SETTINGS := $(shell python3 -c 'import json,pathlib; p=path
 ICEPROG ?= iceprog
 ROM_FLASH_OFFSET ?= $(ROM_FLASH_OFFSET_FROM_SETTINGS)
 ROM_HACK_IMAGE ?= $(ROM_FLASH_IMAGE_FROM_SETTINGS)
-ROM_SPI_IMAGE ?= products/rom.spi.bin
+ROM_SPI_IMAGE ?= images/rom.flash.bin
 
 
 # Build tuning knobs

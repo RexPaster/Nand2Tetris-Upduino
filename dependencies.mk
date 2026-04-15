@@ -80,6 +80,6 @@ products/top.routed.svg: \
 	$(RTL_SOURCES) \
 	top.pcf
 
-# label="Flash ROM (SPI)"
-products/rom.flash.bin: \
+# label="Build ROM SPI Bin"
+images/rom.flash.bin: \
 	rom/rom.hack

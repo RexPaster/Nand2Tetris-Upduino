@@ -1,5 +1,6 @@
 // framebuffer_ebr30_dualclk.sv
 // Hardware path: explicit iCE40 EBR primitives (30 banks, 256x16 each)
+// plus a CPU-facing SPRAM shadow copy for screen reads.
 // Simulation path: behavioral memory model with CPU writes + VGA reads
 
 module framebuffer #(
@@ -92,57 +93,24 @@ module framebuffer #(
             logic [15:0] bank_rdata [0:BRAM_BLOCKS-1];
             logic [4:0]  bank_sel_q;
             logic [12:0] read_word_addr_q;
+            logic [15:0] shadow_read_data;
 
-            // CPU-domain read request / response state.
-            logic [12:0] cpu_req_addr;
-            logic        cpu_req_toggle;
-            logic [12:0] cpu_read_addr_last;
-            logic [15:0] cpu_read_data_reg;
-            logic [1:0]  cpu_resp_toggle_sync;
-            logic [15:0] cpu_resp_data_sync1;
-            logic [15:0] cpu_resp_data_sync2;
+            // CPU-facing shadow copy of the screen memory.
+            // Reads stay on the CPU clock while the VGA side keeps using EBRs.
+            SB_SPRAM256KA shadow_screen (
+                .ADDRESS ({1'b0, write_en ? write_addr : read_addr}),
+                .DATAIN  (write_data),
+                .MASKWREN(4'b0000),
+                .WREN    (write_en),
+                .CHIPSELECT(1'b1),
+                .CLOCK   (clk_cpu),
+                .STANDBY (1'b0),
+                .SLEEP   (1'b0),
+                .POWEROFF(1'b1),
+                .DATAOUT (shadow_read_data)
+            );
 
-            // PIX-domain synchronized CPU request and completion pulse.
-            logic [1:0]  cpu_req_toggle_sync;
-            logic        cpu_req_toggle_seen;
-            logic [12:0] cpu_req_addr_sync1;
-            logic [12:0] cpu_req_addr_sync2;
-            logic        cpu_req_pending;
-            logic [12:0] cpu_req_pending_addr;
-            logic        cpu_resp_toggle_pix;
-            logic [15:0] cpu_resp_data_pix;
-
-            always_ff @(posedge clk_cpu or negedge rst_n) begin
-                if (!rst_n) begin
-                    cpu_req_addr         <= 13'h0000;
-                    cpu_req_toggle       <= 1'b0;
-                    cpu_read_addr_last   <= 13'h1fff;
-                    cpu_read_data_reg    <= 16'h0000;
-                    cpu_resp_toggle_sync <= 2'b00;
-                    cpu_resp_data_sync1  <= 16'h0000;
-                    cpu_resp_data_sync2  <= 16'h0000;
-                end else begin
-                    cpu_resp_toggle_sync <= {cpu_resp_toggle_sync[0], cpu_resp_toggle_pix};
-                    cpu_resp_data_sync1  <= cpu_resp_data_pix;
-                    cpu_resp_data_sync2  <= cpu_resp_data_sync1;
-
-                    if (cpu_resp_toggle_sync[1] ^ cpu_resp_toggle_sync[0]) begin
-                        cpu_read_data_reg <= cpu_resp_data_sync2;
-                    end
-
-                    if (read_addr != cpu_read_addr_last) begin
-                        cpu_read_addr_last <= read_addr;
-                        if (read_addr < FB_WORDS[12:0]) begin
-                            cpu_req_addr   <= read_addr;
-                            cpu_req_toggle <= ~cpu_req_toggle;
-                        end else begin
-                            cpu_read_data_reg <= 16'h0000;
-                        end
-                    end
-                end
-            end
-
-            assign read_data = cpu_read_data_reg;
+            assign read_data = (read_addr < FB_WORDS[12:0]) ? shadow_read_data : 16'h0000;
 
             for (genvar i = 0; i < BRAM_BLOCKS; i++) begin : g_bank
                 localparam logic [4:0] BANK_ID = i[4:0];
@@ -178,29 +146,11 @@ module framebuffer #(
                     bank_sel_q    <= 5'h0;
                     read_word_addr_q <= 13'h0000;
                     read_word     <= 16'h0000;
-                    cpu_req_toggle_sync <= 2'b00;
-                    cpu_req_toggle_seen <= 1'b0;
-                    cpu_req_addr_sync1  <= 13'h0000;
-                    cpu_req_addr_sync2  <= 13'h0000;
-                    cpu_req_pending     <= 1'b0;
-                    cpu_req_pending_addr <= 13'h0000;
-                    cpu_resp_toggle_pix <= 1'b0;
-                    cpu_resp_data_pix   <= 16'h0000;
                 end else begin
                     fb_in_range_q <= fb_in_range;
                     bit_index_q   <= bit_index;
                     bank_sel_q    <= read_word_addr[12:8];
                     read_word_addr_q <= read_word_addr;
-
-                    cpu_req_toggle_sync <= {cpu_req_toggle_sync[0], cpu_req_toggle};
-                    cpu_req_addr_sync1  <= cpu_req_addr;
-                    cpu_req_addr_sync2  <= cpu_req_addr_sync1;
-
-                    if (cpu_req_toggle_sync[1] ^ cpu_req_toggle_seen) begin
-                        cpu_req_toggle_seen <= cpu_req_toggle_sync[1];
-                        cpu_req_pending <= 1'b1;
-                        cpu_req_pending_addr <= cpu_req_addr_sync2;
-                    end
 
                     case (bank_sel_q)
                         5'd0:  read_word <= bank_rdata[0];
@@ -235,12 +185,6 @@ module framebuffer #(
                         5'd29: read_word <= bank_rdata[29];
                         default: read_word <= 16'h0000;
                     endcase
-
-                    if (cpu_req_pending && (read_word_addr_q == cpu_req_pending_addr)) begin
-                        cpu_resp_data_pix <= read_word;
-                        cpu_resp_toggle_pix <= ~cpu_resp_toggle_pix;
-                        cpu_req_pending <= 1'b0;
-                    end
                 end
             end
         end
