@@ -5,8 +5,7 @@
 // - 0x6000: keyboard register
 // - instruction fetch: dedicated ROM path (file ROM or SPI flash)
 module memory #(
-  parameter SIMULATION = 1'b0,
-  parameter USE_SPI_FLASH_ROM = 1'b0
+  parameter SIMULATION = 1'b0
 ) (
   input  [15:0] in,
   input         clock,
@@ -37,8 +36,6 @@ module memory #(
 
   // Instruction ROM path (separate from data memory map).
   rom #(
-    .ROM_FILE(SIMULATION ? "rom/rom.hack" : "rom/rom.hack"),
-    .USE_SPI_FLASH(USE_SPI_FLASH_ROM)
   ) instruction_rom(
     .clock(clock),
     .rst_n(1'b1),
@@ -69,6 +66,6 @@ module memory #(
   );
   // Output mux: select RAM vs screen/keyboard path
   assign out = address[14] ? outSK : outM;
-  // Select keyboard vs screen within upper address space
+  // Select keyboard vs screen within upper address space.
   assign outSK = address[13] ? keyboard_value : outS;
 endmodule

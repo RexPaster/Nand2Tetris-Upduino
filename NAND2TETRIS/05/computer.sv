@@ -5,8 +5,7 @@
 // - CPU executes from instruction stream provided by memory.sv.
 // - memory.sv also owns RAM/ROM/screen/keyboard address decoding.
 module computer #(
-  parameter SIMULATION = 1'b0,
-  parameter USE_SPI_FLASH_ROM = 1'b0
+  parameter SIMULATION = 1'b0
 ) (
     input  reset,
     input  clock,
@@ -33,8 +32,7 @@ module computer #(
 
   // Centralized Hack memory subsystem including instruction ROM.
   memory #(
-    .SIMULATION(SIMULATION),
-    .USE_SPI_FLASH_ROM(USE_SPI_FLASH_ROM)
+    .SIMULATION(SIMULATION)
   ) memory(
     cpuValueToMemory,
     !clock,

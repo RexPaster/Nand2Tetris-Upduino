@@ -20,8 +20,7 @@
 // - Bridges keyboard + Hack computer core + VGA framebuffer pipeline.
 // - Exposes optional SPI flash ROM pins for instruction fetch.
 module top #(
-    parameter bit SIMULATION = 1'b0,
-    parameter bit USE_SPI_FLASH_ROM = 1'b1
+    parameter bit SIMULATION = 1'b0
 ) (
     input  logic       clk_12mhz,
     input  logic       rst_n,
@@ -64,8 +63,7 @@ module top #(
 
     // Hack computer core: CPU + memory map + ROM interface.
     computer #(
-        .SIMULATION(SIMULATION),
-        .USE_SPI_FLASH_ROM(USE_SPI_FLASH_ROM)
+        .SIMULATION(SIMULATION)
     ) hack(
         .reset(!rst_n),
         .clock(clk_12mhz),

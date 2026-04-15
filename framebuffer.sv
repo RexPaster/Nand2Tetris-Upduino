@@ -1,177 +1,251 @@
+// framebuffer_ebr30_dualclk.sv
+// Hardware path: explicit iCE40 EBR primitives (30 banks, 256x16 each)
+// Simulation path: behavioral memory model with CPU writes + VGA reads
+
 module framebuffer #(
-    // Kept for compatibility with existing instantiations.
-    parameter bit SIMULATION = 1'b0,
-
-    // Visible raster dimensions from timing generator.
-    parameter int H_VISIBLE = 640,
-    parameter int V_VISIBLE = 480,
-    parameter int H_TOTAL   = 800,
-    parameter int V_TOTAL   = 525,
-
-    // Full Hack computer screen: 512x256 pixels = 8K words x 16 bits.
-    parameter int H_WRITEABLE = 512,
-    parameter int V_WRITEABLE = 256,
-
-    // Hack screen uses 8K words (13-bit address), each word holds 16 pixels.
-    parameter int WRITE_ADDR_W = 13,
-
-    // Split point for storage banking.
-    // First BRAM_WORDS are mapped to BRAM; remainder are mapped to LUT RAM.
-    parameter int BRAM_WORDS = 7680 //7680
+    parameter bit SIMULATION   = 1'b0,
+    parameter int H_VISIBLE    = 640,
+    parameter int V_VISIBLE    = 480,
+    parameter int H_TOTAL      = 800,
+    parameter int V_TOTAL      = 525,
+    parameter int H_WRITEABLE  = 512,
+    parameter int V_WRITEABLE  = 240,
+    parameter int WRITE_ADDR_W = 13
 ) (
-    // Dual Clock
-    input  logic       clk_pix,
-    input  logic       clk_cpu,
-    input  logic       rst_n,
+    input  logic                       clk_pix,
+    input  logic                       clk_cpu,
+    input  logic                       rst_n,
 
-    // VGA read interface
-    input  logic       active,
-    input  logic [9:0] h_cnt,
-    input  logic [9:0] v_cnt,
+    // VGA read
+    input  logic                       active,
+    input  logic [9:0]                 h_cnt,
+    input  logic [9:0]                 v_cnt,
 
-    // CPU read interface (Hack screen word reads).
-    input  logic [WRITE_ADDR_W-1:0] read_addr,
-    output logic [15:0] read_data,
+    // CPU read/write
+    input  logic [WRITE_ADDR_W-1:0]    read_addr,
+    output logic [15:0]                read_data,
+    input  logic                       write_en,
+    input  logic [WRITE_ADDR_W-1:0]    write_addr,
+    input  logic [15:0]                write_data,
 
-    // Dual-port write interface (same clock domain).
-    input  logic       write_en,
-    input  logic [WRITE_ADDR_W-1:0] write_addr,
-    input  logic [15:0] write_data,
-
-    // 1-bit pixel output: 1=white, 0=black.
-    output logic       pixel_on
+    // Pixel output
+    output logic                       pixel_on
 );
-    // Hack screen geometry: 512x256 pixels = 8192 words x 16 bits.
-    localparam int WORDS_PER_ROW = 32;  // 512 pixels / 16 bits per word
-    localparam int FB_WORDS      = 8192; //8192;  // 512 * 256 / 16
-    localparam int LUT_WORDS     = FB_WORDS - BRAM_WORDS;
-    localparam int LUT_ADDR_W    = $clog2(LUT_WORDS);
 
-    // Read-side word address and bit index generated from {v_cnt, h_cnt}.
-    logic [WRITE_ADDR_W-1:0] read_word_addr;
-    logic [WRITE_ADDR_W-1:0] write_word_addr;
-    logic [3:0]              bit_index;
+    localparam int WORDS_PER_ROW    = 32;
+    localparam int BRAM_BLOCKS      = 30;
+    localparam int BRAM_BLOCK_WORDS = 256;
+    localparam int FB_WORDS         = BRAM_BLOCKS * BRAM_BLOCK_WORDS;
+    localparam logic [9:0] H_WRITEABLE_10 = H_WRITEABLE[9:0];
+    localparam logic [9:0] V_WRITEABLE_10 = V_WRITEABLE[9:0];
 
-    // Region-valid qualifiers for read and write sides.
-    logic                 fb_in_range;
-    logic                 write_in_range;
-    logic [7:0]           write_row;
-    logic [4:0]           write_col;
-
-    // Integer helper used for safe address math.
-    int unsigned          read_word_calc;
+    logic [12:0] read_word_addr;
+    logic [3:0]  bit_index;
+    logic        fb_in_range;
 
     logic [15:0] read_word;
-    logic [15:0] read_word_bram;
-    logic [15:0] read_word_lut;
-    logic [15:0] cpu_read_word_bram;
-    logic [15:0] cpu_read_word_lut;
-    logic        cpu_read_is_lut;
-    logic        cpu_read_is_lut_q;
-    logic        read_is_lut;
-    logic        read_is_lut_q;
-    logic        write_is_lut;
     logic        fb_in_range_q;
-    logic [LUT_ADDR_W-1:0] lut_read_addr;
-    logic [LUT_ADDR_W-1:0] lut_write_addr;
-    logic [LUT_ADDR_W-1:0] cpu_lut_read_addr;
-    logic [WRITE_ADDR_W-1:0] bram_read_addr;
-    logic [WRITE_ADDR_W-1:0] bram_write_addr;
-    logic [WRITE_ADDR_W-1:0] cpu_bram_read_addr;
-    logic [WRITE_ADDR_W-1:0] lut_read_offset;
-    logic [WRITE_ADDR_W-1:0] cpu_lut_read_offset;
-    logic [WRITE_ADDR_W-1:0] lut_write_offset;
-    logic [3:0]              bit_index_q;
-    int unsigned             write_word_calc;
+    logic [3:0]  bit_index_q;
 
-    // BRAM bank.
-    (* ram_style = "block" *) logic [15:0] fb_mem_bram [0:BRAM_WORDS-1];
-
-    // LUT RAM bank.
-    (* ram_style = "distributed" *) logic [15:0] fb_mem_lut [0:LUT_WORDS-1];
-
-
-    // --- CPU Port (clk_cpu): Handles CPU read/write ---
-    always_ff @(posedge clk_cpu or negedge rst_n) begin
-        if (!rst_n) begin
-            cpu_read_word_bram <= '0;
-            cpu_read_word_lut <= '0;
-            cpu_read_is_lut_q <= 1'b0;
-        end else begin
-            // Write
-            if (write_en && write_in_range) begin
-                if (write_is_lut) fb_mem_lut[lut_write_addr] <= write_data;
-                else              fb_mem_bram[bram_write_addr] <= write_data;
-            end
-            // Registered CPU read
-            cpu_read_word_bram <= fb_mem_bram[cpu_bram_read_addr];
-            cpu_read_word_lut  <= fb_mem_lut[cpu_lut_read_addr];
-            cpu_read_is_lut_q  <= cpu_read_is_lut;
-        end
-    end
-
-    assign read_data = cpu_read_is_lut_q ? cpu_read_word_lut : cpu_read_word_bram;
-
-    // --- VGA Pixel Port (clk_pix): Handles pixel reads ---
-    always_ff @(posedge clk_pix or negedge rst_n) begin
-        if (!rst_n) begin
-            read_word_bram <= '0;
-            read_word_lut <= '0;
-            read_is_lut_q <= 1'b0;
-            fb_in_range_q <= 1'b0;
-            bit_index_q <= '0;
-        end else begin
-            read_word_bram <= fb_mem_bram[bram_read_addr];
-            read_word_lut  <= fb_mem_lut[lut_read_addr];
-            read_is_lut_q  <= read_is_lut;
-            fb_in_range_q  <= fb_in_range;
-            bit_index_q    <= bit_index;
-        end
-    end
-
-    assign read_word = read_is_lut_q ? read_word_lut : read_word_bram;
-
-    // Address and range generation.
     always_comb begin
-        // Read is valid only inside active video and screen window.
-        fb_in_range = active && (h_cnt < H_WRITEABLE) && (v_cnt < V_WRITEABLE);
+        fb_in_range = active && (h_cnt < H_WRITEABLE_10) && (v_cnt < V_WRITEABLE_10);
 
-        // Write address from CPU: uses Hack's 32 words/row layout (13-bit address).
-        write_row = write_addr[12:5];
-        write_col = write_addr[4:0];
-
-        // Write is valid for full screen (512x256).
-        write_in_range = (write_row < V_WRITEABLE) && (write_col < WORDS_PER_ROW);
-        write_word_calc = (write_row * WORDS_PER_ROW) + write_col;
-        write_word_addr = write_word_calc[WRITE_ADDR_W-1:0];
-
-        // Read address from VGA: Hack screen word mapping: addr = y * 32 + floor(x / 16).
         if (fb_in_range) begin
-            read_word_calc = (v_cnt * WORDS_PER_ROW) + h_cnt[9:4];
-            read_word_addr = read_word_calc[WRITE_ADDR_W-1:0];
-            bit_index = h_cnt[3:0];
+            read_word_addr = ({3'b000, v_cnt} << 5) + {7'b0000000, h_cnt[9:4]};
+            bit_index      = h_cnt[3:0];
         end else begin
-            read_word_calc = '0;
             read_word_addr = '0;
-            bit_index = '0;
+            bit_index      = '0;
         end
-
-        read_is_lut = (read_word_addr >= BRAM_WORDS);
-        cpu_read_is_lut = (read_addr >= BRAM_WORDS);
-        write_is_lut = (write_word_addr >= BRAM_WORDS);
-        lut_read_offset = read_word_addr - BRAM_WORDS[WRITE_ADDR_W-1:0];
-        cpu_lut_read_offset = read_addr - BRAM_WORDS[WRITE_ADDR_W-1:0];
-        lut_write_offset = write_word_addr - BRAM_WORDS[WRITE_ADDR_W-1:0];
-        lut_read_addr = read_is_lut ? lut_read_offset[LUT_ADDR_W-1:0] : '0;
-        cpu_lut_read_addr = cpu_read_is_lut ? cpu_lut_read_offset[LUT_ADDR_W-1:0] : '0;
-        lut_write_addr = write_is_lut ? lut_write_offset[LUT_ADDR_W-1:0] : '0;
-        bram_read_addr = read_is_lut ? '0 : read_word_addr;
-        cpu_bram_read_addr = cpu_read_is_lut ? '0 : read_addr;
-        bram_write_addr = write_is_lut ? '0 : write_word_addr;
-
     end
 
-    // Pixels outside the screen window are forced black.
+    generate
+        if (SIMULATION) begin : g_sim
+            logic [15:0] fb_mem [0:FB_WORDS-1];
+            logic [15:0] cpu_read_word;
+
+            always_ff @(posedge clk_cpu) begin
+                if (write_en && (write_addr < FB_WORDS[WRITE_ADDR_W-1:0])) begin
+                    fb_mem[write_addr] <= write_data;
+                end
+
+                if (read_addr < FB_WORDS[WRITE_ADDR_W-1:0]) begin
+                    cpu_read_word <= fb_mem[read_addr];
+                end else begin
+                    cpu_read_word <= 16'h0000;
+                end
+            end
+
+            assign read_data = cpu_read_word;
+
+            always_ff @(posedge clk_pix) begin
+                fb_in_range_q <= fb_in_range;
+                bit_index_q   <= bit_index;
+
+                if (read_word_addr < FB_WORDS[12:0]) begin
+                    read_word <= fb_mem[read_word_addr];
+                end else begin
+                    read_word <= 16'h0000;
+                end
+            end
+        end else begin : g_hw
+            logic [15:0] bank_rdata [0:BRAM_BLOCKS-1];
+            logic [4:0]  bank_sel_q;
+            logic [12:0] read_word_addr_q;
+
+            // CPU-domain read request / response state.
+            logic [12:0] cpu_req_addr;
+            logic        cpu_req_toggle;
+            logic [12:0] cpu_read_addr_last;
+            logic [15:0] cpu_read_data_reg;
+            logic [1:0]  cpu_resp_toggle_sync;
+            logic [15:0] cpu_resp_data_sync1;
+            logic [15:0] cpu_resp_data_sync2;
+
+            // PIX-domain synchronized CPU request and completion pulse.
+            logic [1:0]  cpu_req_toggle_sync;
+            logic        cpu_req_toggle_seen;
+            logic [12:0] cpu_req_addr_sync1;
+            logic [12:0] cpu_req_addr_sync2;
+            logic        cpu_req_pending;
+            logic [12:0] cpu_req_pending_addr;
+            logic        cpu_resp_toggle_pix;
+            logic [15:0] cpu_resp_data_pix;
+
+            always_ff @(posedge clk_cpu or negedge rst_n) begin
+                if (!rst_n) begin
+                    cpu_req_addr         <= 13'h0000;
+                    cpu_req_toggle       <= 1'b0;
+                    cpu_read_addr_last   <= 13'h1fff;
+                    cpu_read_data_reg    <= 16'h0000;
+                    cpu_resp_toggle_sync <= 2'b00;
+                    cpu_resp_data_sync1  <= 16'h0000;
+                    cpu_resp_data_sync2  <= 16'h0000;
+                end else begin
+                    cpu_resp_toggle_sync <= {cpu_resp_toggle_sync[0], cpu_resp_toggle_pix};
+                    cpu_resp_data_sync1  <= cpu_resp_data_pix;
+                    cpu_resp_data_sync2  <= cpu_resp_data_sync1;
+
+                    if (cpu_resp_toggle_sync[1] ^ cpu_resp_toggle_sync[0]) begin
+                        cpu_read_data_reg <= cpu_resp_data_sync2;
+                    end
+
+                    if (read_addr != cpu_read_addr_last) begin
+                        cpu_read_addr_last <= read_addr;
+                        if (read_addr < FB_WORDS[12:0]) begin
+                            cpu_req_addr   <= read_addr;
+                            cpu_req_toggle <= ~cpu_req_toggle;
+                        end else begin
+                            cpu_read_data_reg <= 16'h0000;
+                        end
+                    end
+                end
+            end
+
+            assign read_data = cpu_read_data_reg;
+
+            for (genvar i = 0; i < BRAM_BLOCKS; i++) begin : g_bank
+                localparam logic [4:0] BANK_ID = i[4:0];
+                logic bank_we;
+
+                always_comb begin
+                    bank_we = write_en && (write_addr[12:8] == BANK_ID);
+                end
+
+                SB_RAM40_4K #(
+                    .READ_MODE(0),
+                    .WRITE_MODE(0)
+                ) u_ebr (
+                    .RCLK (clk_pix),
+                    .RCLKE(1'b1),
+                    .RE   (fb_in_range),
+                    .RADDR({3'b000, read_word_addr[7:0]}),
+                    .RDATA(bank_rdata[i]),
+
+                    .WCLK (clk_cpu),
+                    .WCLKE(1'b1),
+                    .WE   (bank_we),
+                    .WADDR({3'b000, write_addr[7:0]}),
+                    .WDATA(write_data),
+                    .MASK (16'h0000)
+                );
+            end
+
+            always_ff @(posedge clk_pix or negedge rst_n) begin
+                if (!rst_n) begin
+                    fb_in_range_q <= 1'b0;
+                    bit_index_q   <= 4'h0;
+                    bank_sel_q    <= 5'h0;
+                    read_word_addr_q <= 13'h0000;
+                    read_word     <= 16'h0000;
+                    cpu_req_toggle_sync <= 2'b00;
+                    cpu_req_toggle_seen <= 1'b0;
+                    cpu_req_addr_sync1  <= 13'h0000;
+                    cpu_req_addr_sync2  <= 13'h0000;
+                    cpu_req_pending     <= 1'b0;
+                    cpu_req_pending_addr <= 13'h0000;
+                    cpu_resp_toggle_pix <= 1'b0;
+                    cpu_resp_data_pix   <= 16'h0000;
+                end else begin
+                    fb_in_range_q <= fb_in_range;
+                    bit_index_q   <= bit_index;
+                    bank_sel_q    <= read_word_addr[12:8];
+                    read_word_addr_q <= read_word_addr;
+
+                    cpu_req_toggle_sync <= {cpu_req_toggle_sync[0], cpu_req_toggle};
+                    cpu_req_addr_sync1  <= cpu_req_addr;
+                    cpu_req_addr_sync2  <= cpu_req_addr_sync1;
+
+                    if (cpu_req_toggle_sync[1] ^ cpu_req_toggle_seen) begin
+                        cpu_req_toggle_seen <= cpu_req_toggle_sync[1];
+                        cpu_req_pending <= 1'b1;
+                        cpu_req_pending_addr <= cpu_req_addr_sync2;
+                    end
+
+                    case (bank_sel_q)
+                        5'd0:  read_word <= bank_rdata[0];
+                        5'd1:  read_word <= bank_rdata[1];
+                        5'd2:  read_word <= bank_rdata[2];
+                        5'd3:  read_word <= bank_rdata[3];
+                        5'd4:  read_word <= bank_rdata[4];
+                        5'd5:  read_word <= bank_rdata[5];
+                        5'd6:  read_word <= bank_rdata[6];
+                        5'd7:  read_word <= bank_rdata[7];
+                        5'd8:  read_word <= bank_rdata[8];
+                        5'd9:  read_word <= bank_rdata[9];
+                        5'd10: read_word <= bank_rdata[10];
+                        5'd11: read_word <= bank_rdata[11];
+                        5'd12: read_word <= bank_rdata[12];
+                        5'd13: read_word <= bank_rdata[13];
+                        5'd14: read_word <= bank_rdata[14];
+                        5'd15: read_word <= bank_rdata[15];
+                        5'd16: read_word <= bank_rdata[16];
+                        5'd17: read_word <= bank_rdata[17];
+                        5'd18: read_word <= bank_rdata[18];
+                        5'd19: read_word <= bank_rdata[19];
+                        5'd20: read_word <= bank_rdata[20];
+                        5'd21: read_word <= bank_rdata[21];
+                        5'd22: read_word <= bank_rdata[22];
+                        5'd23: read_word <= bank_rdata[23];
+                        5'd24: read_word <= bank_rdata[24];
+                        5'd25: read_word <= bank_rdata[25];
+                        5'd26: read_word <= bank_rdata[26];
+                        5'd27: read_word <= bank_rdata[27];
+                        5'd28: read_word <= bank_rdata[28];
+                        5'd29: read_word <= bank_rdata[29];
+                        default: read_word <= 16'h0000;
+                    endcase
+
+                    if (cpu_req_pending && (read_word_addr_q == cpu_req_pending_addr)) begin
+                        cpu_resp_data_pix <= read_word;
+                        cpu_resp_toggle_pix <= ~cpu_resp_toggle_pix;
+                        cpu_req_pending <= 1'b0;
+                    end
+                end
+            end
+        end
+    endgenerate
+
     assign pixel_on = fb_in_range_q ? read_word[bit_index_q] : 1'b0;
 
 endmodule

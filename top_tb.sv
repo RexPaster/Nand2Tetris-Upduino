@@ -1,8 +1,6 @@
 `timescale 1ns/1ps
 
-`ifndef TB_USE_SPI_FLASH_ROM
-`define TB_USE_SPI_FLASH_ROM 1
-`endif
+
 
 module top_tb;
     logic       clk_12mhz;
@@ -19,7 +17,7 @@ module top_tb;
 
     top #(
         .SIMULATION(1'b1),
-        .USE_SPI_FLASH_ROM(`TB_USE_SPI_FLASH_ROM)
+
     ) dut (
         .clk_12mhz(clk_12mhz),
         .rst_n     (rst_n),

@@ -14,10 +14,7 @@ IMAGES_DIR := $(MAKEFILE_PATH)/../images
 # Project-wide settings loaded from settings.json in repository root.
 SETTINGS_JSON ?= settings.json
 BUILD_PRESET_FROM_SETTINGS := $(shell python3 -c 'import json,pathlib; p=pathlib.Path("$(SETTINGS_JSON)"); cfg=json.loads(p.read_text()) if p.exists() else {}; print(cfg.get("build_preset","fast"))' 2>/dev/null || echo fast)
-USE_SPI_FLASH_ROM := $(shell python3 -c 'import json,pathlib; p=pathlib.Path("$(SETTINGS_JSON)"); cfg=json.loads(p.read_text()) if p.exists() else {}; v=str(cfg.get("use_spi_flash_rom",1)).strip().lower(); print(1 if v in ("1","true","yes","on") else 0)' 2>/dev/null || echo 1)
-SIM_USE_SPI_FLASH_ROM := $(shell python3 -c 'import json,pathlib; p=pathlib.Path("$(SETTINGS_JSON)"); cfg=json.loads(p.read_text()) if p.exists() else {}; v=str(cfg.get("sim_use_spi_flash_rom",1)).strip().lower(); print(1 if v in ("1","true","yes","on") else 0)' 2>/dev/null || echo 1)
-
-# ROM flashing settings are configurable from settings.json.
+# Build tuning knobs
 ROM_FLASH_OFFSET_FROM_SETTINGS := $(shell python3 -c 'import json,pathlib; p=pathlib.Path("$(SETTINGS_JSON)"); cfg=json.loads(p.read_text()) if p.exists() else {}; print(cfg.get("rom_flash_offset","0x200000"))' 2>/dev/null || echo 0x200000)
 ROM_FLASH_IMAGE_FROM_SETTINGS := $(shell python3 -c 'import json,pathlib; p=pathlib.Path("$(SETTINGS_JSON)"); cfg=json.loads(p.read_text()) if p.exists() else {}; print(cfg.get("rom_flash_image","rom/rom.hack"))' 2>/dev/null || echo rom/rom.hack)
 
@@ -71,7 +68,7 @@ endif
 
 # If top.sv is among HDL dependencies, use module "top" as hierarchy root.
 YOSYS_HIERARCHY = $(if $(filter top.sv,$(notdir $(filter %.sv,$^))),hierarchy -top top,hierarchy -auto-top)
-YOSYS_TOP_CHPARAM = $(if $(filter top.sv,$(notdir $(filter %.sv,$^))),chparam -set USE_SPI_FLASH_ROM $(USE_SPI_FLASH_ROM) top;,)
+YOSYS_TOP_CHPARAM = $(if $(filter top.sv,$(notdir $(filter %.sv,$^))),chparam -set SIMULATION 0 top;,)
 
 #### HDL Build Rules (Essentially a shell script) ####
 
@@ -111,7 +108,6 @@ YOSYS_TOP_CHPARAM = $(if $(filter top.sv,$(notdir $(filter %.sv,$^))),chparam -s
 %.vcd: FORCE
 >    rm -f $(@:.vcd=.sim)
 >    iverilog -g 2012 \
->      -D TB_USE_SPI_FLASH_ROM=$(SIM_USE_SPI_FLASH_ROM) \
 >      -I . \
 >      -I NAND2TETRIS/05 \
 >      -I VGA \

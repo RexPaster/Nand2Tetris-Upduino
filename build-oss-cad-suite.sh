@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name=sim3
-#SBATCH --output=sim3.out
-#SBATCH --error=sim3.err
-#SBATCH --partition=ib-linuxlab
+#SBATCH --job-name=FPGA_SYNTHESIS
+#SBATCH --output=logs.out
+#SBATCH --error=logs.err
+#SBATCH --partition=linuxlab
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=48G
-#SBATCH --time=04:00:00
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=100G
+#SBATCH --time=08:00:00
 #SBATCH -A engr-class-any
 
 set -e

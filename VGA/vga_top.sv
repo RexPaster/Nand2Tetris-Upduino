@@ -84,10 +84,10 @@ module vga_top #(
     );
 
     // ---------------------------------------------------------------
-    // Framebuffer - Full Hack computer screen: 512x256
+    // Framebuffer limited to 30 BRAM blocks: 512x240
     // ---------------------------------------------------------------
     localparam logic [9:0] H_WRITEABLE = 10'd512;
-    localparam logic [9:0] V_WRITEABLE = 10'd256;
+    localparam logic [9:0] V_WRITEABLE = 10'd240;
 
     logic pixel_on;
     framebuffer #(
